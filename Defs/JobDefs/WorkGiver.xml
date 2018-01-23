@@ -13,5 +13,12 @@
       <li>Manipulation</li>
     </requiredCapacities>
   </WorkGiverDef>
+  
+    <JobDef>
+    <defName>DropUnusedInventory</defName>
+    <driverClass>JobGiver_DropUnusedInventory</driverClass>
+    <reportString>unloading inventory.</reportString>
+    <suspendable>false</suspendable>
+  </JobDef>
 	
 </Defs>
