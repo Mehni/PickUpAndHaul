@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2020
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PickUpThatCan", "PickUpThatCan\PickUpThatCan.csproj", "{62746AF8-5967-416E-A205-8470F171CA39}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PickUpAndHaul", "PickUpAndHaul\PickUpAndHaul.csproj", "{CCF8350B-E3FD-4693-9209-681E9C089097}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{62746AF8-5967-416E-A205-8470F171CA39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{62746AF8-5967-416E-A205-8470F171CA39}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{62746AF8-5967-416E-A205-8470F171CA39}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{62746AF8-5967-416E-A205-8470F171CA39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CCF8350B-E3FD-4693-9209-681E9C089097}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCF8350B-E3FD-4693-9209-681E9C089097}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCF8350B-E3FD-4693-9209-681E9C089097}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCF8350B-E3FD-4693-9209-681E9C089097}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {4ECE233C-FAAC-4A2B-AE55-587AE29FF293}
+		SolutionGuid = {93C914EA-EFF3-429D-A4FF-0349E5047CF2}
 	EndGlobalSection
 EndGlobal

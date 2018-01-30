@@ -4,7 +4,7 @@
   <WorkGiverDef>
     <defName>HaulToInventory</defName>
     <label>stuff things in inventory and haul</label>
-    <giverClass>PickUpThatCan.WorkGiver_HaulToInventory</giverClass>
+    <giverClass>PickUpAndHaul.WorkGiver_HaulToInventory</giverClass>
     <workType>Hauling</workType>
     <verb>haul</verb>
     <gerund>hauling</gerund>
@@ -14,11 +14,22 @@
     </requiredCapacities>
   </WorkGiverDef>
   
-    <JobDef>
-    <defName>DropUnusedInventory</defName>
-    <driverClass>JobGiver_DropUnusedInventory</driverClass>
-    <reportString>unloading inventory.</reportString>
+  <JobDef>
+    <defName>HaulToInventory</defName>
+    <driverClass>PickUpAndHaul.JobDriver_HaulToInventory</driverClass>
+    <reportString>gathering TargetA to hauling inventory.</reportString>
+	<casualInterruptible>false</casualInterruptible>
     <suspendable>false</suspendable>
   </JobDef>
+  
+  <JobDef>
+    <defName>UnloadYourHauledInventory</defName>
+    <driverClass>PickUpAndHaul.JobDriver_UnloadYourHauledInventory</driverClass>
+    <reportString>unloading inventory.</reportString>
+	<casualInterruptible>false</casualInterruptible>
+    <suspendable>false</suspendable>
+  </JobDef>
+  
+
 	
 </Defs>
