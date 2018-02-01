@@ -36,8 +36,11 @@ namespace PickUpAndHaul
             harmony.Patch(AccessTools.Method(typeof(JobGiver_DropUnusedInventory), "Drop"),
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(Drop_Prefix)), null, null);
 
+            harmony.Patch(AccessTools.Method(typeof(JobGiver_Idle), "TryGiveJob"), null,
+                new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
+
             if (ModCompatibilityCheck.KnownConflict) Log.Message("Pick Up And Haul has found a conflicting mod and will lay dormant.");
-            if (!ModCompatibilityCheck.KnownConflict) Log.Message("[PickUpAndHaul] welcomes you to RimWorld.");
+            if (!ModCompatibilityCheck.KnownConflict) Log.Message("PickUpAndHaul v0.18.1.2 welcomes you to RimWorld with pointless logspam.");
         }
 
         private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
@@ -57,29 +60,60 @@ namespace PickUpAndHaul
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
-            if (carriedThing.Contains(item))
+            if (__instance.pawn.Spawned && __instance.pawn.Faction.IsPlayer) //weird issue with worldpawns and guests
             {
-                carriedThing.Remove(item);
+                if (carriedThing?.Count != 0)
+                {
+                    if (carriedThing.Contains(item))
+                    {
+                        carriedThing.Remove(item);
+                    }
+                }
             }
         }
 
         private static void JobDriver_HaulToCell_PostFix(JobDriver_HaulToCell __instance)
         {
-            if (__instance.job.haulMode == HaulMode.ToCellStorage 
-                && __instance.pawn.Faction == Faction.OfPlayer 
-                && __instance.pawn.RaceProps.Humanlike 
-                && __instance.pawn.carryTracker.CarriedThing is Corpse == false) //deliberate hauling job. Should unload.
+            CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
+            HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
+
+            if (__instance.job.haulMode == HaulMode.ToCellStorage
+                && __instance.pawn.Faction == Faction.OfPlayer
+                && __instance.pawn.RaceProps.Humanlike
+                && __instance.pawn.carryTracker.CarriedThing is Corpse == false
+                && carriedThing != null
+                && carriedThing.Count !=0) //deliberate hauling job. Should unload.
             {
+                //Log.Message(__instance.pawn + " was forced to unload");
                 PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(__instance.pawn, true);
             }
-            else //possibly carrying ingredients for bills etc
+            else //possibly carrying ingredients for bills or filling hoppers
             {
+                //Log.Message(__instance.pawn + " Hauled to Cell and checked for unload");
                 PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(__instance.pawn);
             }
         }
 
+        public static void IdleJoy_Postfix(ref Pawn pawn)
+        {
+            PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true);
+        }
+
         public static void DropUnusedInventory_PostFix(ref Pawn pawn)
         {
+
+           // if (pawn.jobs.curDriver.layingDown == LayingDownState.LayingInBed) return;
+            
+            
+            //List<Hediff> hediffs = pawn.health.hediffSet.hediffs;
+            //for (int i = 0; i < hediffs.Count; i++)
+            //{
+            //    Hediff_Injury hediff_Injury = hediffs[i] as Hediff_Injury;
+            //    if (hediff_Injury != null && hediff_Injury.Bleeding)
+            //    {
+            //        return;
+            //    }
+            //}
             PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn);
         }
 

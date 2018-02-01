@@ -17,5 +17,13 @@ namespace PickUpAndHaul
                 return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Combat Extended" /*|| m.Name == "While You're Up"*/);
             }
         }
+
+        public static bool Simplesidearms
+        {
+            get
+            {
+                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Simple sidearms");
+            }
+        }
     }
 }

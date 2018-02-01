@@ -14,36 +14,91 @@ namespace PickUpAndHaul
 
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
+
             Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
-
+            
             if (ModCompatibilityCheck.KnownConflict)
             {
                 return;
             }
 
+            if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike) //you shouldn't even be here.
+            {
+                return;
+            }
+
+
+            if (carriedThing?.Count == 0)
+            {
+                return;
+            }
+
+            if (pawn.inventory.innerContainer.Count == 0)
+            {
+                return;
+            }
+
+            if (carriedThing?.Count != 0)
+            {
+                Thing thing = null;
+                try
+                {
+                    thing = carriedThing.First();
+                }
+                catch (Exception arg)
+                {
+                    Log.Error("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
+                    carriedThing.Clear();
+                    pawn.inventory.UnloadEverything = true;
+                }
+            }
+            
             if (forced)
             {
                 if (job.TryMakePreToilReservations(pawn))
                 {
                     pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                    return;
                 }
             }
 
-            if (pawn.inventory.innerContainer.Count >= 5 || MassUtility.EncumbrancePercent(pawn) >= 0.90f)
+            //TODO: Check for rottables
+
+            if (MassUtility.EncumbrancePercent(pawn) >= 0.90f || carriedThing.Count >= 2)
             {
                 if (job.TryMakePreToilReservations(pawn))
                 {
                     pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                    return;
                 }
             }
 
-            if (Find.TickManager.TicksGame % 120 == 0 && pawn.inventory.innerContainer.Count >= 2) //we don't wind up in this function often, so this is like a lottery!
+            foreach (Thing rottable in pawn.inventory.innerContainer)
             {
-                Log.Message("[PickUpAndHaul] " + pawn + " cleared haul-state and will drop inventory.");
+                CompRottable compRottable = rottable.TryGetComp<CompRottable>();
+                if (compRottable.TicksUntilRotAtCurrentTemp < 30000)
+                {
+                    pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                    return;
+                }
+            }
+            
+            //if (carriedThing.Count >= 3) //try to unload a bit less aggressively
+            //{
+            //    if (job.TryMakePreToilReservations(pawn))
+            //    {
+            //        pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+            //        return;
+            //    }
+            //}
+
+            if (Find.TickManager.TicksGame % 50 == 0 && pawn.inventory.innerContainer.Count < carriedThing.Count)
+            {
+                Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
                 carriedThing.Clear();
-                pawn.inventory.UnloadEverything = true;
+                pawn.inventory.UnloadEverything = true;                
             }
         }
     }

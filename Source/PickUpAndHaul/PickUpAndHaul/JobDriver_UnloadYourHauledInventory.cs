@@ -33,6 +33,16 @@ namespace PickUpAndHaul
 
             Toil wait = Toils_General.Wait(UnloadDuration);
             Toil celebrate = Toils_General.Wait(10);
+            //Log.Message(pawn + " is unloading.");
+            foreach(Thing x in carriedThing)
+            {
+                //Log.Message(pawn + " has " + x + " in carriedthing");
+
+            }
+            foreach(Thing y in pawn.inventory.innerContainer)
+            {
+                //Log.Message(pawn + " has " + y + " in inventory");
+            }
 
             yield return wait;
             Toil findSpot = new Toil
@@ -41,6 +51,7 @@ namespace PickUpAndHaul
                 {
                 
                 ThingStackPart unloadableThing = FirstUnloadableThing(pawn);
+                    
 
                     if (unloadableThing.Count == 0 && carriedThing.Count == 0)
                     {
@@ -81,6 +92,7 @@ namespace PickUpAndHaul
 					{
                         this.pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, this.countToDrop, out thing, null);
                         this.EndJobWith(JobCondition.Succeeded);
+                        //Log.Message(pawn + " unloaded " +thing);
                         carriedThing.Remove(thing);
                     }
 					else
@@ -88,6 +100,7 @@ namespace PickUpAndHaul
                         this.pawn.inventory.innerContainer.TryTransferToContainer(thing, this.pawn.carryTracker.innerContainer, this.countToDrop, out thing, true);
                         this.job.count = this.countToDrop;
                         this.job.SetTarget(TargetIndex.A, thing);
+                        //Log.Message(pawn + " unloaded " + thing);
                         carriedThing.Remove(thing);
                     }
                     thing.SetForbidden(false, false);
@@ -114,10 +127,12 @@ namespace PickUpAndHaul
 
             foreach (Thing thing in carriedThing)
             {
+                //Log.Message(pawn + " carries " + thing);
                 if (!potentialThingToUnload.Contains(thing))
                 {
                     ThingDef stragglerDef = thing.def;
 
+                    //pick up partial stacks creates a new thingID that I have no method of grabbing. This is the solution to that.
                     var dirtyStragglers =
                         from straggler in pawn.inventory.innerContainer
                         where straggler.def == stragglerDef
@@ -125,6 +140,16 @@ namespace PickUpAndHaul
 
                     foreach (Thing dirtyStraggler in dirtyStragglers)
                     {
+                        foreach (Thing leftbehind in carriedThing)
+                        {
+                            Log.Warning(pawn + " thinks he has " + leftbehind + " with count " + leftbehind.stackCount);
+                        }
+                        foreach (Thing inventory in pawn.inventory.innerContainer)
+                        {
+                            Log.Warning(pawn + " actually has " + inventory + " with count " + inventory.stackCount);
+                        }
+                        Predicate<Thing> validator = (Thing t) => t.def == stragglerDef;
+                        carriedThing.RemoveWhere(validator);
                         return new ThingStackPart(dirtyStraggler, dirtyStraggler.stackCount);
                     }
                 }
