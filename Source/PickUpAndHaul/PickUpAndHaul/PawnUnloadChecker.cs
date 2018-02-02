@@ -17,6 +17,11 @@ namespace PickUpAndHaul
 
             Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+            if (takenToInventory == null)
+            {
+                Log.Warning(pawn + " cannot Pick Up And Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
+                return;
+            }
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
             
             if (ModCompatibilityCheck.KnownConflict)
@@ -24,32 +29,26 @@ namespace PickUpAndHaul
                 return;
             }
 
-            if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike) //you shouldn't even be here.
+            if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike)
+            {
+                return;
+            }
+            
+            if (carriedThing?.Count == 0 || pawn.inventory.innerContainer.Count == 0)
             {
                 return;
             }
 
-
-            if (carriedThing?.Count == 0)
-            {
-                return;
-            }
-
-            if (pawn.inventory.innerContainer.Count == 0)
-            {
-                return;
-            }
-
-            if (carriedThing?.Count != 0)
+            if (carriedThing.Count != 0)
             {
                 Thing thing = null;
                 try
                 {
-                    thing = carriedThing.First();
+                    carriedThing.Contains(thing);
                 }
                 catch (Exception arg)
                 {
-                    Log.Error("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
+                    Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
                     carriedThing.Clear();
                     pawn.inventory.UnloadEverything = true;
                 }
@@ -64,8 +63,6 @@ namespace PickUpAndHaul
                 }
             }
 
-            //TODO: Check for rottables
-
             if (MassUtility.EncumbrancePercent(pawn) >= 0.90f || carriedThing.Count >= 2)
             {
                 if (job.TryMakePreToilReservations(pawn))
@@ -75,13 +72,21 @@ namespace PickUpAndHaul
                 }
             }
 
-            foreach (Thing rottable in pawn.inventory.innerContainer)
+            if (pawn.inventory.innerContainer?.Count >= 1)
             {
-                CompRottable compRottable = rottable.TryGetComp<CompRottable>();
-                if (compRottable.TicksUntilRotAtCurrentTemp < 30000)
+                foreach (Thing rottable in pawn.inventory.innerContainer)
                 {
-                    pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
-                    return;
+                    CompRottable compRottable = rottable.TryGetComp<CompRottable>();
+                    if (compRottable != null)
+                    {
+                        //Log.Message(pawn + " compRottable" + rottable);
+                        if (compRottable.TicksUntilRotAtCurrentTemp < 30000)
+                        {
+                            //Log.Message(pawn + " " + compRottable.TicksUntilRotAtCurrentTemp);
+                            pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                            return;
+                        }
+                    }
                 }
             }
             

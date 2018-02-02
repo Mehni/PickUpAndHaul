@@ -40,12 +40,17 @@ namespace PickUpAndHaul
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
 
             if (ModCompatibilityCheck.KnownConflict) Log.Message("Pick Up And Haul has found a conflicting mod and will lay dormant.");
-            if (!ModCompatibilityCheck.KnownConflict) Log.Message("PickUpAndHaul v0.18.1.2 welcomes you to RimWorld with pointless logspam.");
+            if (!ModCompatibilityCheck.KnownConflict) Log.Message("PickUpAndHaul v0.18.1.3 welcomes you to RimWorld with pointless logspam.");
         }
 
         private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+            if (takenToInventory == null)
+            {
+                Log.Warning(pawn + " cannot Pick Up and Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
+                return true;
+            }
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             if (carriedThing.Contains(thing))
@@ -58,6 +63,11 @@ namespace PickUpAndHaul
         private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, ref Thing item)
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
+            if (takenToInventory == null)
+            {
+                Log.Warning(__instance.pawn + " cannot Pick Up and Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
+                return;
+            }
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             if (__instance.pawn.Spawned && __instance.pawn.Faction.IsPlayer) //weird issue with worldpawns and guests
@@ -75,21 +85,25 @@ namespace PickUpAndHaul
         private static void JobDriver_HaulToCell_PostFix(JobDriver_HaulToCell __instance)
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
+            if (takenToInventory == null)
+            {
+                Log.Warning(__instance.pawn + " cannot Pick Up and Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
+                return;
+            }
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             if (__instance.job.haulMode == HaulMode.ToCellStorage
                 && __instance.pawn.Faction == Faction.OfPlayer
                 && __instance.pawn.RaceProps.Humanlike
                 && __instance.pawn.carryTracker.CarriedThing is Corpse == false
+                //&& !__instance.pawn.carryTracker.CarriedThing.def.defName.Contains("Chunk") //HaulAsideJobFor is handled by HaulMode.ToCellStorage
                 && carriedThing != null
                 && carriedThing.Count !=0) //deliberate hauling job. Should unload.
             {
-                //Log.Message(__instance.pawn + " was forced to unload");
                 PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(__instance.pawn, true);
             }
-            else //possibly carrying ingredients for bills or filling hoppers
+            else //we could politely ask
             {
-                //Log.Message(__instance.pawn + " Hauled to Cell and checked for unload");
                 PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(__instance.pawn);
             }
         }
@@ -101,19 +115,6 @@ namespace PickUpAndHaul
 
         public static void DropUnusedInventory_PostFix(ref Pawn pawn)
         {
-
-           // if (pawn.jobs.curDriver.layingDown == LayingDownState.LayingInBed) return;
-            
-            
-            //List<Hediff> hediffs = pawn.health.hediffSet.hediffs;
-            //for (int i = 0; i < hediffs.Count; i++)
-            //{
-            //    Hediff_Injury hediff_Injury = hediffs[i] as Hediff_Injury;
-            //    if (hediff_Injury != null && hediff_Injury.Bleeding)
-            //    {
-            //        return;
-            //    }
-            //}
             PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn);
         }
 

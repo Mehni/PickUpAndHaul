@@ -49,6 +49,15 @@ namespace PickUpAndHaul
                     int num = Mathf.Min(this.job.count, thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing)); //hauling jobs are stupid and the count is often set to 99999
                     if (num <= 0)
                     {
+                        Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
+                        if (haul != null)
+                        {
+                            if (haul.TryMakePreToilReservations(actor))
+                            {
+                                actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                                return;
+                            }
+                        }
                         actor.jobs.curDriver.JumpToToil(wait);
                     }
                     else
@@ -74,19 +83,16 @@ namespace PickUpAndHaul
             {
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
-                //if (curJob.count <= 0)
-                //{
-                //    return;
-                //}
+
                 Predicate<Thing> validator = (Thing t) => t.Spawned
-                //&& t.def == actor.CurJob.GetTarget(TargetIndex.A).Thing.def
                 && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
                 && (takeFromValidStorage || !t.IsInValidStorage())
-                && !t.IsForbidden(actor) 
-                && actor.CanReserve(t, 1, -1, null, false) 
+                && !t.IsForbidden(actor)
+                && actor.CanReserve(t, 1, -1, null, false)
                 && (extraValidator == null || extraValidator(t));
 
-                Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), 8f, validator, null, 0, -1, false, RegionType.Set_Passable, false);
+                Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, 
+                    TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), 8f, validator, null, 0, -1, false, RegionType.Set_Passable, false);
                 if (thing != null && MassUtility.EncumbrancePercent(actor) <= 0.90f)
                 {
                     curJob.SetTarget(haulableInd, thing);
@@ -95,10 +101,13 @@ namespace PickUpAndHaul
                 else if (thing != null)
                 {
                     Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
-                    if (haul.TryMakePreToilReservations(actor))
+                    if (haul != null) //because it can return null, and that ruins my day.
                     {
-                        actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
-                        return;
+                        if (haul.TryMakePreToilReservations(actor))
+                        {
+                            actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                            return;
+                        }
                     }
                 }
             };

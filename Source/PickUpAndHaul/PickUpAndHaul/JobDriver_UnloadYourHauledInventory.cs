@@ -25,6 +25,11 @@ namespace PickUpAndHaul
             return true;
         }
 
+
+        /// <summary>
+        /// Find spot, reserve spot, goto spot, 
+        /// </summary>
+        /// <returns></returns>
         [DebuggerHidden]
         protected override IEnumerable<Toil> MakeNewToils()
         {
@@ -33,16 +38,7 @@ namespace PickUpAndHaul
 
             Toil wait = Toils_General.Wait(UnloadDuration);
             Toil celebrate = Toils_General.Wait(10);
-            //Log.Message(pawn + " is unloading.");
-            foreach(Thing x in carriedThing)
-            {
-                //Log.Message(pawn + " has " + x + " in carriedthing");
 
-            }
-            foreach(Thing y in pawn.inventory.innerContainer)
-            {
-                //Log.Message(pawn + " has " + y + " in inventory");
-            }
 
             yield return wait;
             Toil findSpot = new Toil
@@ -50,8 +46,7 @@ namespace PickUpAndHaul
                 initAction = () =>
                 {
                 
-                ThingStackPart unloadableThing = FirstUnloadableThing(pawn);
-                    
+                ThingStackPart unloadableThing = FirstUnloadableThing(pawn);                    
 
                     if (unloadableThing.Count == 0 && carriedThing.Count == 0)
                     {
@@ -77,7 +72,7 @@ namespace PickUpAndHaul
             yield return findSpot;
 
             yield return Toils_Reserve.Reserve(TargetIndex.B, 1, -1, null);
-            yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.Touch);
+
             yield return new Toil
             {
                 initAction = delegate
@@ -85,6 +80,7 @@ namespace PickUpAndHaul
                     Thing thing = this.job.GetTarget(TargetIndex.A).Thing;
                     if (thing == null || !this.pawn.inventory.innerContainer.Contains(thing))
 					{
+                        carriedThing.Remove(thing);
                         this.EndJobWith(JobCondition.Incompletable);
                         return;
                     }
@@ -92,7 +88,6 @@ namespace PickUpAndHaul
 					{
                         this.pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, this.countToDrop, out thing, null);
                         this.EndJobWith(JobCondition.Succeeded);
-                        //Log.Message(pawn + " unloaded " +thing);
                         carriedThing.Remove(thing);
                     }
 					else
@@ -100,13 +95,13 @@ namespace PickUpAndHaul
                         this.pawn.inventory.innerContainer.TryTransferToContainer(thing, this.pawn.carryTracker.innerContainer, this.countToDrop, out thing, true);
                         this.job.count = this.countToDrop;
                         this.job.SetTarget(TargetIndex.A, thing);
-                        //Log.Message(pawn + " unloaded " + thing);
                         carriedThing.Remove(thing);
                     }
                     thing.SetForbidden(false, false);
                 }
             };
             Toil carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
+            yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.Touch);
             yield return carryToCell;
             yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
             yield return Toils_Jump.Jump(wait);
@@ -120,6 +115,8 @@ namespace PickUpAndHaul
             
             //List<Thing> mergedList = pawn.inventory.innerContainer.Union(carriedThing).ToList();
 
+
+            //find the overlap.
             var potentialThingToUnload =
                 from t in pawn.inventory.innerContainer
                 where carriedThing.Contains(t)
@@ -127,31 +124,26 @@ namespace PickUpAndHaul
 
             foreach (Thing thing in carriedThing)
             {
-                //Log.Message(pawn + " carries " + thing);
+
+                //partially picked up stacks get a different thingID in inventory
                 if (!potentialThingToUnload.Contains(thing))
                 {
+                    carriedThing.Remove(thing);
                     ThingDef stragglerDef = thing.def;
-
-                    //pick up partial stacks creates a new thingID that I have no method of grabbing. This is the solution to that.
+                    
+                    //we have no method of grabbing the newly generated thingID. This is the solution to that.
                     var dirtyStragglers =
                         from straggler in pawn.inventory.innerContainer
                         where straggler.def == stragglerDef
-                        select straggler;
+                        select straggler;                    
 
                     foreach (Thing dirtyStraggler in dirtyStragglers)
                     {
-                        foreach (Thing leftbehind in carriedThing)
-                        {
-                            Log.Warning(pawn + " thinks he has " + leftbehind + " with count " + leftbehind.stackCount);
-                        }
-                        foreach (Thing inventory in pawn.inventory.innerContainer)
-                        {
-                            Log.Warning(pawn + " actually has " + inventory + " with count " + inventory.stackCount);
-                        }
                         Predicate<Thing> validator = (Thing t) => t.def == stragglerDef;
                         carriedThing.RemoveWhere(validator);
                         return new ThingStackPart(dirtyStraggler, dirtyStraggler.stackCount);
                     }
+                                    
                 }
                 return new ThingStackPart(thing, thing.stackCount); //pawn.inventory.innerContainer.Intersect(carriedThing).Max(t => t.stackCount));
             }
