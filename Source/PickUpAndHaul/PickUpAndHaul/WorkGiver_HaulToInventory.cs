@@ -26,35 +26,19 @@ namespace PickUpAndHaul
 
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
-            if (t is Corpse)
-            {
-                return null;
-            }
-            if (!HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, forced))
-            {
-                return null;
-            }
+            if (t is Corpse) return null;
 
-            if (ModCompatibilityCheck.KnownConflict)
-            {
-                return null;
-            }
+            if (!HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, forced)) return null;
 
-            if (t.IsForbidden(pawn) || StoreUtility.IsInValidBestStorage(t))
-            {
-                return null;
-            }
+            if (ModCompatibilityCheck.KnownConflict) return null;
+            
+            if (t.IsForbidden(pawn) || StoreUtility.IsInValidBestStorage(t)) return null;
 
-            if (ModCompatibilityCheck.Simplesidearms && t.def.defName.Contains("Chunk")) //because who doesn't love hardcoded checks?
-            {
-                return HaulAIUtility.HaulToStorageJob(pawn, t);
-            }
+            //because who doesn't love hardcoded checks?
+            if (ModCompatibilityCheck.Simplesidearms && t.def.defName.Contains("Chunk")) return HaulAIUtility.HaulToStorageJob(pawn, t);
 
-            //if bulky gear (power armor + minigun) would prevent them carrying lots, don't bother.
-            if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.7f)
-            {
-                return null;
-            }
+            //bulky gear (power armor + minigun) so don't bother.
+            if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.7f) return null;
 
             StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(t.Position, t);
             if (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true)) 
@@ -70,7 +54,7 @@ namespace PickUpAndHaul
                         {
                             Thing thing = thingList[i];
                             if (thing.def == ThingDefOf.Hopper)
-                                return HaulAIUtility.HaulToStorageJob(pawn, t);
+                            return HaulAIUtility.HaulToStorageJob(pawn, t);
                         }
                     }
                 }
@@ -90,15 +74,7 @@ namespace PickUpAndHaul
             //credit to Dingo
             int c = MassUtility.CountToPickUpUntilOverEncumbered(pawn, t);
 
-            if (c == 0)
-            {
-                return HaulAIUtility.HaulToStorageJob(pawn, t);
-            }
-
-            else if (c >= 2 && t.def.BaseMass >= 1)
-            {
-                return HaulAIUtility.HaulToStorageJob(pawn, t);
-            }
+            if (c == 0) return HaulAIUtility.HaulToStorageJob(pawn, t);
 
             return new Job(PickUpAndHaulJobDefOf.HaulToInventory, t)
             {

@@ -20,7 +20,7 @@ namespace PickUpAndHaul
         
         public void RegisterHauledItem(Thing thing)
         {
-                this.TakenToInventory.Add(thing);
+            this.TakenToInventory.Add(thing);
         }
 
         public override void PostExposeData()

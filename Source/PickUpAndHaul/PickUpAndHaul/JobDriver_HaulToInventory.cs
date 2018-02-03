@@ -7,7 +7,6 @@ using Verse;
 using Verse.AI;
 using System.Diagnostics;
 using UnityEngine;
-using Verse.Sound;
 
 namespace PickUpAndHaul
 {
@@ -32,7 +31,7 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                    this.pawn.pather.StartPath(this.TargetThingA, PathEndMode.ClosestTouch); //thing to change in case of persistent tweener issues. Shouldn't happen though.
+                    this.pawn.pather.StartPath(this.TargetThingA, PathEndMode.ClosestTouch);
                 },
                 defaultCompleteMode = ToilCompleteMode.PatherArrival
             };
@@ -46,24 +45,22 @@ namespace PickUpAndHaul
                     Pawn actor = this.pawn;
                     Thing thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
                     Toils_Haul.ErrorCheckForCarry(actor, thing);
-                    int num = Mathf.Min(this.job.count, thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing)); //hauling jobs are stupid and the count is often set to 99999
+
+                    int num = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
                     if (num <= 0)
                     {
                         Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
-                        if (haul != null)
+
+                        if (haul?.TryMakePreToilReservations(actor) ?? false)
                         {
-                            if (haul.TryMakePreToilReservations(actor))
-                            {
-                                actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
-                                return;
-                            }
+                            actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
                         }
                         actor.jobs.curDriver.JumpToToil(wait);
                     }
                     else
                     {
-                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(num), false); 
                         //Merging and unmerging messes up the picked up ID (which already gets messed up enough)
+                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(num), false); 
                         takenToInventory.RegisterHauledItem(thing);
                     }
                 }
@@ -72,7 +69,7 @@ namespace PickUpAndHaul
             yield return CheckDuplicateItemsToHaulToInventory(reserveTargetA, TargetIndex.A, false);
             yield return wait;
         }
-
+        
 
         //regular Toils_Haul.CheckForGetOpportunityDuplicate isn't going to work for our purposes, since we're not carrying anything. 
         //Carrying something yields weird results with unspawning errors when transfering to inventory, so we copy-past-- I mean, implement our own.
@@ -85,11 +82,11 @@ namespace PickUpAndHaul
                 Job curJob = actor.jobs.curJob;
 
                 Predicate<Thing> validator = (Thing t) => t.Spawned
-                && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
-                && (takeFromValidStorage || !t.IsInValidStorage())
-                && !t.IsForbidden(actor)
-                && actor.CanReserve(t, 1, -1, null, false)
-                && (extraValidator == null || extraValidator(t));
+                    && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
+                    && (takeFromValidStorage || !t.IsInValidStorage())
+                    && !t.IsForbidden(actor)
+                    && actor.CanReserve(t, 1, -1, null, false)
+                    && (extraValidator == null || extraValidator(t));
 
                 Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, 
                     TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), 8f, validator, null, 0, -1, false, RegionType.Set_Passable, false);
@@ -97,17 +94,24 @@ namespace PickUpAndHaul
                 {
                     curJob.SetTarget(haulableInd, thing);
                     actor.jobs.curDriver.JumpToToil(getHaulTargetToil);
+                    return;
                 }
-                else if (thing != null)
+                if (thing != null)
                 {
                     Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
-                    if (haul != null) //because it can return null, and that ruins my day.
+                    if (haul?.TryMakePreToilReservations(actor) ?? false)
                     {
-                        if (haul.TryMakePreToilReservations(actor))
-                        {
-                            actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
-                            return;
-                        }
+                        actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                        return;
+                    }
+                }
+                if (thing == null && actor.jobs.jobQueue.Count == 0)
+                {
+                    Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
+                    if (job.TryMakePreToilReservations(actor))
+                    {
+                        actor.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                        return;
                     }
                 }
             };

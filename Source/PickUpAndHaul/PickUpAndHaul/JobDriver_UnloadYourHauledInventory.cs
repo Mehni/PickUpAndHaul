@@ -12,7 +12,7 @@ namespace PickUpAndHaul
     {
         private int countToDrop = -1;
 
-        private const int UnloadDuration = 10;
+        private const int UnloadDuration = 3;
 
         public override void ExposeData()
         {
@@ -27,7 +27,7 @@ namespace PickUpAndHaul
 
 
         /// <summary>
-        /// Find spot, reserve spot, goto spot, 
+        /// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
         /// </summary>
         /// <returns></returns>
         [DebuggerHidden]
@@ -37,7 +37,7 @@ namespace PickUpAndHaul
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             Toil wait = Toils_General.Wait(UnloadDuration);
-            Toil celebrate = Toils_General.Wait(10);
+            Toil celebrate = Toils_General.Wait(UnloadDuration);
 
 
             yield return wait;
@@ -55,7 +55,9 @@ namespace PickUpAndHaul
 
                     if (unloadableThing.Count != 0)
                     {
-                        if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
+                        StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
+                        if (!StoreUtility.TryFindBestBetterStoreCellFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 c, true))
+                        //if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
                         {
                             this.pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing thing, null);
                             this.EndJobWith(JobCondition.Succeeded);
@@ -111,41 +113,41 @@ namespace PickUpAndHaul
         ThingStackPart FirstUnloadableThing(Pawn pawn)
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
-            
+            HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
+
             //List<Thing> mergedList = pawn.inventory.innerContainer.Union(carriedThing).ToList();
 
-
+            //TODO: Merge stacks upon unload.
+            
             //find the overlap.
-            var potentialThingToUnload =
+            IEnumerable<Thing> potentialThingsToUnload =
                 from t in pawn.inventory.innerContainer
-                where carriedThing.Contains(t)
+                where carriedThings.Contains(t)
                 select t;
 
-            foreach (Thing thing in carriedThing)
+            foreach (Thing thing in carriedThings)
             {
-
                 //partially picked up stacks get a different thingID in inventory
-                if (!potentialThingToUnload.Contains(thing))
+                if (!potentialThingsToUnload.Contains(thing))
                 {
-                    carriedThing.Remove(thing);
                     ThingDef stragglerDef = thing.def;
                     
                     //we have no method of grabbing the newly generated thingID. This is the solution to that.
-                    var dirtyStragglers =
+                    IEnumerable<Thing> dirtyStragglers =
                         from straggler in pawn.inventory.innerContainer
                         where straggler.def == stragglerDef
-                        select straggler;                    
+                        select straggler;
+
+                    carriedThings.Remove(thing);
 
                     foreach (Thing dirtyStraggler in dirtyStragglers)
                     {
-                        Predicate<Thing> validator = (Thing t) => t.def == stragglerDef;
-                        carriedThing.RemoveWhere(validator);
+                        //Predicate<Thing> validator = (Thing t) => t.def == stragglerDef;
+                        //carriedThings.RemoveWhere(validator);
                         return new ThingStackPart(dirtyStraggler, dirtyStraggler.stackCount);
                     }
-                                    
                 }
-                return new ThingStackPart(thing, thing.stackCount); //pawn.inventory.innerContainer.Intersect(carriedThing).Max(t => t.stackCount));
+                return new ThingStackPart(thing, thing.stackCount);
             }
             return default(ThingStackPart);
         }

@@ -40,7 +40,7 @@ namespace PickUpAndHaul
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
 
             if (ModCompatibilityCheck.KnownConflict) Log.Message("Pick Up And Haul has found a conflicting mod and will lay dormant.");
-            if (!ModCompatibilityCheck.KnownConflict) Log.Message("PickUpAndHaul v0.18.1.3 welcomes you to RimWorld with pointless logspam.");
+            else Log.Message("PickUpAndHaul v0.18.1.4 welcomes you to RimWorld with pointless logspam.");
         }
 
         private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
@@ -68,18 +68,22 @@ namespace PickUpAndHaul
                 Log.Warning(__instance.pawn + " cannot Pick Up and Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
                 return;
             }
+
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
-            if (__instance.pawn.Spawned && __instance.pawn.Faction.IsPlayer) //weird issue with worldpawns and guests
+            //if (__instance.pawn.Spawned) //weird issue with worldpawns was caused by not having the comp
+            //{
+            //    if (__instance.pawn.Faction?.IsPlayer ?? false) //roaming muffalo
+            //    {
+            if (carriedThing?.Count != 0)
             {
-                if (carriedThing?.Count != 0)
+                if (carriedThing.Contains(item))
                 {
-                    if (carriedThing.Contains(item))
-                    {
-                        carriedThing.Remove(item);
-                    }
+                    carriedThing.Remove(item);
                 }
             }
+            //    }
+            //} 
         }
 
         private static void JobDriver_HaulToCell_PostFix(JobDriver_HaulToCell __instance)
@@ -145,7 +149,6 @@ namespace PickUpAndHaul
                     //    //{ instructionList[i + 5].labels = instruction.labels;}
                     //    instructionList.RemoveRange(i, 5);
                     //    patched = true;
-
                 }
                 yield return instruction;
             }
