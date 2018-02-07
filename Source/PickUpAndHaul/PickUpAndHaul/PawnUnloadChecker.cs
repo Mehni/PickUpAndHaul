@@ -16,9 +16,9 @@ namespace PickUpAndHaul
         {
             Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+
             if (takenToInventory == null)
             {
-                Log.Warning(pawn + " cannot Pick Up And Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
                 return;
             }
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
@@ -35,7 +35,6 @@ namespace PickUpAndHaul
                     if (carriedThing.Contains(thing))
                     {
                         carriedThing.Remove(thing);
-                        Log.Warning(pawn + " removed thing null from Pick Up and Haul inventory");
                     }
                 }
                 catch (Exception arg)

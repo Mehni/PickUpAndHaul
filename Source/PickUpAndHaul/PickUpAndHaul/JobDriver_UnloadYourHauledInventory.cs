@@ -56,8 +56,8 @@ namespace PickUpAndHaul
                     if (unloadableThing.Count != 0)
                     {
                         StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
-                        if (!StoreUtility.TryFindBestBetterStoreCellFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 c, true))
-                        //if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
+                        //if (!StoreUtility.TryFindBestBetterStoreCellFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 c, true))
+                        if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
                         {
                             this.pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing thing, null);
                             this.EndJobWith(JobCondition.Succeeded);
@@ -102,6 +102,7 @@ namespace PickUpAndHaul
                     thing.SetForbidden(false, false);
                 }
             };
+
             Toil carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
             yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.Touch);
             yield return carryToCell;
@@ -116,8 +117,6 @@ namespace PickUpAndHaul
             HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
 
             //List<Thing> mergedList = pawn.inventory.innerContainer.Union(carriedThing).ToList();
-
-            //TODO: Merge stacks upon unload.
             
             //find the overlap.
             IEnumerable<Thing> potentialThingsToUnload =
@@ -127,6 +126,20 @@ namespace PickUpAndHaul
 
             foreach (Thing thing in carriedThings)
             {
+                try
+                {
+                    if (thing == null)
+                    {
+                        carriedThings.Remove(thing);
+                    }
+                }
+                catch (Exception arg)
+                {
+                    Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
+                    carriedThings.Clear();
+                    pawn.inventory.UnloadEverything = true;
+                }
+                
                 //partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
                 {

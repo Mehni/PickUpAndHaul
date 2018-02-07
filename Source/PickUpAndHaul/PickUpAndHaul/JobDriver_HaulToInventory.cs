@@ -21,7 +21,8 @@ namespace PickUpAndHaul
         protected override IEnumerable<Toil> MakeNewToils()
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            this.FailOnDestroyedOrNull(TargetIndex.A);
+            HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
+            //this.FailOnDestroyedOrNull(TargetIndex.A);
 
             Toil wait = Toils_General.Wait(2);
             Toil reserveTargetA = Toils_Reserve.Reserve(TargetIndex.A, 1, -1, null);
@@ -60,20 +61,20 @@ namespace PickUpAndHaul
                     else
                     {
                         //Merging and unmerging messes up the picked up ID (which already gets messed up enough)
-                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(num), false); 
+                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(num), true); 
                         takenToInventory.RegisterHauledItem(thing);
                     }
                 }
             };
             yield return takeThing;
-            yield return CheckDuplicateItemsToHaulToInventory(reserveTargetA, TargetIndex.A, false);
+            yield return CheckDuplicateItemsToHaulToInventory(reserveTargetA, TargetIndex.A);
             yield return wait;
         }
         
 
         //regular Toils_Haul.CheckForGetOpportunityDuplicate isn't going to work for our purposes, since we're not carrying anything. 
         //Carrying something yields weird results with unspawning errors when transfering to inventory, so we copy-past-- I mean, implement our own.
-        public static Toil CheckDuplicateItemsToHaulToInventory(Toil getHaulTargetToil, TargetIndex haulableInd, bool takeFromValidStorage = false, Predicate<Thing> extraValidator = null)
+        public static Toil CheckDuplicateItemsToHaulToInventory(Toil getHaulTargetToil, TargetIndex haulableInd, Predicate<Thing> extraValidator = null)
         {
             Toil toil = new Toil();
             toil.initAction = delegate
@@ -83,13 +84,15 @@ namespace PickUpAndHaul
 
                 Predicate<Thing> validator = (Thing t) => t.Spawned
                     && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
-                    && (takeFromValidStorage || !t.IsInValidStorage())
+                    && (!t.IsInValidBestStorage())
                     && !t.IsForbidden(actor)
-                    && actor.CanReserve(t, 1, -1, null, false)
-                    && (extraValidator == null || extraValidator(t));
+                    && !(t is Corpse)
+                    && actor.CanReserve(t, 1, -1, null, false);
+                  //  && (extraValidator == null ||  extraValidator(t));
 
                 Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, 
                     TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), 8f, validator, null, 0, -1, false, RegionType.Set_Passable, false);
+
                 if (thing != null && MassUtility.EncumbrancePercent(actor) <= 0.90f)
                 {
                     curJob.SetTarget(haulableInd, thing);
@@ -105,7 +108,7 @@ namespace PickUpAndHaul
                         return;
                     }
                 }
-                if (thing == null && actor.jobs.jobQueue.Count == 0)
+                if (thing == null)
                 {
                     Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
                     if (job.TryMakePreToilReservations(actor))

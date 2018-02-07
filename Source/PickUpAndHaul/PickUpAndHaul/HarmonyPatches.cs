@@ -48,7 +48,6 @@ namespace PickUpAndHaul
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null)
             {
-                Log.Warning(pawn + " cannot Pick Up and Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
                 return true;
             }
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
@@ -65,7 +64,6 @@ namespace PickUpAndHaul
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null)
             {
-                Log.Warning(__instance.pawn + " cannot Pick Up and Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
                 return;
             }
 
@@ -91,7 +89,6 @@ namespace PickUpAndHaul
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null)
             {
-                Log.Warning(__instance.pawn + " cannot Pick Up and Haul. Does not inherit from BasePawn. Patch failed or mod incompatibility.");
                 return;
             }
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
