@@ -25,6 +25,7 @@ namespace PickUpAndHaul
         {
 
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+            if (takenToInventory == null) return null;
 
             if (t is Corpse) return null;
 

@@ -17,10 +17,8 @@ namespace PickUpAndHaul
             Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
-            if (takenToInventory == null)
-            {
-                return;
-            }
+            if (takenToInventory == null) return;
+
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             if (ModCompatibilityCheck.KnownConflict) return;

@@ -40,7 +40,7 @@ namespace PickUpAndHaul
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
 
             if (ModCompatibilityCheck.KnownConflict) Log.Message("Pick Up And Haul has found a conflicting mod and will lay dormant.");
-            else Log.Message("PickUpAndHaul v0.18.1.4 welcomes you to RimWorld with pointless logspam.");
+            else Log.Message("PickUpAndHaul v0.18.1.5 welcomes you to RimWorld with pointless logspam.");
         }
 
         private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
