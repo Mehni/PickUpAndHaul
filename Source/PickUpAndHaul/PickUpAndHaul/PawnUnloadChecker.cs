@@ -15,13 +15,12 @@ namespace PickUpAndHaul
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
             Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
-            CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+            CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
-            if (takenToInventory == null) return;
+            if (itemsTakenToInventory == null) return;
 
-            HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
+            HashSet<Thing> carriedThing = itemsTakenToInventory.GetHashSet();
 
-            if (ModCompatibilityCheck.KnownConflict) return;
             if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike) return;
             if (carriedThing?.Count == 0 || pawn.inventory.innerContainer.Count == 0) return;
 

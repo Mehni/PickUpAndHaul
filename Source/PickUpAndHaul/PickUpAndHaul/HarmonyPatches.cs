@@ -16,7 +16,7 @@ namespace PickUpAndHaul
     [StaticConstructorOnStartup]
     static class HarmonyPatches
     {
-
+        
         static HarmonyPatches()
         {
             HarmonyInstance harmony = HarmonyInstance.Create("mehni.rimworld.pickupthatcan.main");
@@ -38,9 +38,52 @@ namespace PickUpAndHaul
 
             harmony.Patch(AccessTools.Method(typeof(JobGiver_Idle), "TryGiveJob"), null,
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
+            
+            try
+            {
+                ((Action)(() =>
+                {
+                    if (ModCompatibilityCheck.AllowToolIsActive)
+                    {
+                        harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), "JobOnThing"),
+                            new HarmonyMethod(typeof(HarmonyPatches), nameof(AllowToolHaulUrgentlyJobOnThing_PreFix)), null, null);
+                    }
+                }))();
+            }
+            catch (TypeLoadException) { }            
+            Log.Message("PickUpAndHaul v0.18.1.6 welcomes you to RimWorld with pointless logspam.");
+        }
 
-            if (ModCompatibilityCheck.KnownConflict) Log.Message("Pick Up And Haul has found a conflicting mod and will lay dormant.");
-            else Log.Message("PickUpAndHaul v0.18.1.5 welcomes you to RimWorld with pointless logspam.");
+
+        private static bool AllowToolHaulUrgentlyJobOnThing_PreFix(ref Job __result, Pawn pawn, Thing t, bool forced = false)
+        {
+            if (ModCompatibilityCheck.AllowToolIsActive)
+            {
+                //allowTool HaulUrgently
+                CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+
+                if (pawn.RaceProps.Humanlike
+                    && t is Corpse == false
+                    && takenToInventory != null
+                    && !(t.def.defName.Contains("Chunk")) //most of the time we don't have space for it
+                    )
+                {
+                    StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(t.Position, t);
+                    if (!StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true))
+                    {
+                        JobFailReason.Is("NoEmptyPlaceLower".Translate());
+                        return false;
+                    }
+
+                    Job haul = new Job(PickUpAndHaulJobDefOf.HaulToInventory, t)
+                    {
+                        count = t.stackCount
+                    };
+                    __result = haul;
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
@@ -62,17 +105,9 @@ namespace PickUpAndHaul
         private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, ref Thing item)
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
-            if (takenToInventory == null)
-            {
-                return;
-            }
-
+            if (takenToInventory == null) return;
+            
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
-
-            //if (__instance.pawn.Spawned) //weird issue with worldpawns was caused by not having the comp
-            //{
-            //    if (__instance.pawn.Faction?.IsPlayer ?? false) //roaming muffalo
-            //    {
             if (carriedThing?.Count != 0)
             {
                 if (carriedThing.Contains(item))
@@ -80,24 +115,20 @@ namespace PickUpAndHaul
                     carriedThing.Remove(item);
                 }
             }
-            //    }
-            //} 
         }
 
+        
         private static void JobDriver_HaulToCell_PostFix(JobDriver_HaulToCell __instance)
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
-            if (takenToInventory == null)
-            {
-                return;
-            }
+            if (takenToInventory == null) return;
+
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             if (__instance.job.haulMode == HaulMode.ToCellStorage
                 && __instance.pawn.Faction == Faction.OfPlayer
                 && __instance.pawn.RaceProps.Humanlike
                 && __instance.pawn.carryTracker.CarriedThing is Corpse == false
-                //&& !__instance.pawn.carryTracker.CarriedThing.def.defName.Contains("Chunk") //HaulAsideJobFor is handled by HaulMode.ToCellStorage
                 && carriedThing != null
                 && carriedThing.Count !=0) //deliberate hauling job. Should unload.
             {
@@ -133,7 +164,7 @@ namespace PickUpAndHaul
             for (int i = 0; i < instructionList.Count; i++)
             {
                 CodeInstruction instruction = instructionList[i];
-                if (!patched && instruction.operand == playerHome && !ModCompatibilityCheck.KnownConflict)
+                if (!patched && instruction.operand == playerHome && !ModCompatibilityCheck.CombatExtendedIsActive) // CE does the exact same thing, so we don't.
                 //if (instructionList[i + 3].opcode == OpCodes.Callvirt && instruction.operand == playerHome)
                 //if (instructionList[i + 3].operand == playerHome)
                 {

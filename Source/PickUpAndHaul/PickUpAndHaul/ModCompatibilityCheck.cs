@@ -10,19 +10,35 @@ namespace PickUpAndHaul
     [StaticConstructorOnStartup]
     public class ModCompatibilityCheck
     {
-        public static bool KnownConflict
+        public static bool CombatExtendedIsActive
         {
             get
             {
-                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Combat Extended" /*|| m.Name == "While You're Up"*/);
+                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Combat Extended");
             }
         }
 
-        public static bool Simplesidearms
+        public static bool AllowToolIsActive
+        {
+            get
+            {
+                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Allow Tool");
+            }
+        }
+
+        public static bool SimplesidearmsIsActive
         {
             get
             {
                 return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Simple sidearms");
+            }
+        }
+
+        public static bool ExtendedStorageIsActive
+        {
+            get
+            {
+                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "ExtendedStorageFluffyHarmonised");
             }
         }
     }

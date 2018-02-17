@@ -11,8 +11,7 @@ namespace PickUpAndHaul
     public class JobDriver_UnloadYourHauledInventory : JobDriver
     {
         private int countToDrop = -1;
-
-        private const int UnloadDuration = 3;
+        private int UnloadDuration = 3;
 
         public override void ExposeData()
         {
@@ -30,15 +29,18 @@ namespace PickUpAndHaul
         /// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
         /// </summary>
         /// <returns></returns>
-        [DebuggerHidden]
         protected override IEnumerable<Toil> MakeNewToils()
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
+            if (ModCompatibilityCheck.ExtendedStorageIsActive)
+            {
+                UnloadDuration = 12;
+            }
+
             Toil wait = Toils_General.Wait(UnloadDuration);
             Toil celebrate = Toils_General.Wait(UnloadDuration);
-
 
             yield return wait;
             Toil findSpot = new Toil
@@ -56,7 +58,6 @@ namespace PickUpAndHaul
                     if (unloadableThing.Count != 0)
                     {
                         StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
-                        //if (!StoreUtility.TryFindBestBetterStoreCellFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 c, true))
                         if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
                         {
                             this.pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing thing, null);
@@ -99,6 +100,18 @@ namespace PickUpAndHaul
                         this.job.SetTarget(TargetIndex.A, thing);
                         carriedThing.Remove(thing);
                     }
+                    try
+                    {
+                        ((Action)(() =>
+                        {
+                            if (ModCompatibilityCheck.CombatExtendedIsActive)
+                            {
+                                CombatExtended.CompInventory ceCompInventory = pawn.GetComp<CombatExtended.CompInventory>();
+                                ceCompInventory.UpdateInventory();
+                            }
+                        }))();
+                    }
+                    catch (TypeLoadException) { }
                     thing.SetForbidden(false, false);
                 }
             };
@@ -113,10 +126,8 @@ namespace PickUpAndHaul
 
         ThingStackPart FirstUnloadableThing(Pawn pawn)
         {
-            CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
-
-            //List<Thing> mergedList = pawn.inventory.innerContainer.Union(carriedThing).ToList();
+            CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+            HashSet<Thing> carriedThings = itemsTakenToInventory.GetHashSet();
             
             //find the overlap.
             IEnumerable<Thing> potentialThingsToUnload =
@@ -140,7 +151,7 @@ namespace PickUpAndHaul
                     pawn.inventory.UnloadEverything = true;
                 }
                 
-                //partially picked up stacks get a different thingID in inventory
+                //merged partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
                 {
                     ThingDef stragglerDef = thing.def;
@@ -155,8 +166,6 @@ namespace PickUpAndHaul
 
                     foreach (Thing dirtyStraggler in dirtyStragglers)
                     {
-                        //Predicate<Thing> validator = (Thing t) => t.def == stragglerDef;
-                        //carriedThings.RemoveWhere(validator);
                         return new ThingStackPart(dirtyStraggler, dirtyStraggler.stackCount);
                     }
                 }
