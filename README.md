@@ -14,23 +14,23 @@ If possible, colonists that can haul will haul stuff to their inventory, pick up
 
 You can tell colonists to pick up an item and keep it in their inventory. They will remember what they have and keep it on their person. This is very practical for field doctoring, or for animal trainers taming herds of animals.
 
+Want field-doctoring to be even better? Use [Inventory Medicine](https://steamcommunity.com/sharedfiles/filedetails/?id=1309994319) by Uuugggg and doctors will automatically use the meds in their inventory.
+
 ## Limitations
 - Only player-owned humanlikes can use their inventory to haul. Rule of thumb: If you can order it to equip a gun or wear a pair of pants, it'll use their inventory to haul for you. No guests, animals pretending to be robots, dogs, prisoners, or whatever else. To modders: Inherit from BasePawn WITHOUT including your own, and we're good.
 
-- The unloading isn't perfect or 100% bulletproof. Colonists will occasionally turn into kleptomaniacs, but this happens less and less as the mod matures.
+- There's a bug in Simple Sidearms where they can't drop chunks. If you have Simple Sidearms, pawns won't stuff chunks in their inventory on their own accord. If they get told to pick it up, they still will. I can't fix bugs in other peoples mods.
+
+- The unloading isn't 100% perfect, but it's pretty darn close.
 
 ## Compatibility notes:
-Should work fine with other hauling mods like AllowTool's Haul Urgently, Please Haul Perishables and Stack Merger, but they don't gain the inventory-benefit.
+Works in unison with AllowTool's Haul Urgently designation.
 
-Works well together with Simple Sidearms.
+Works well with Simple Sidearms, with the chunk limitation.
 
-Does not conflict with Combat Extended, but if Pick Up And Haul detects CE, then it will lay dormant.
-
-Compatibility and synergy is the next goal. Let me know in the comments which mod to prioritise.
+Fully Combat Extended compatible. Backpacks, bulk, mass - it all works.
 
 ## Future plans:
-- Synergy with Haul Urgently, Please Haul Perishables and Combat Extended. Not conflicting is one thing, cooperating is another.
-- Mod settings.
 - Many more refinements.
 
 ## Credits and thanks:
