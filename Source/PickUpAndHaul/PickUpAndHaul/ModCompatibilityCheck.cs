@@ -26,13 +26,13 @@ namespace PickUpAndHaul
             }
         }
 
-        public static bool SimplesidearmsIsActive
-        {
-            get
-            {
-                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Simple sidearms");
-            }
-        }
+        //public static bool SimplesidearmsIsActive
+        //{
+        //    get
+        //    {
+        //        return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Simple sidearms");
+        //    }
+        //}
 
         public static bool ExtendedStorageIsActive
         {

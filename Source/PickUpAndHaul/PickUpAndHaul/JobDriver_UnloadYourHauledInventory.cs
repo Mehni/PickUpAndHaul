@@ -36,7 +36,8 @@ namespace PickUpAndHaul
 
             if (ModCompatibilityCheck.ExtendedStorageIsActive)
             {
-                UnloadDuration = 12;
+                //ES takes at least ~10 ticks to move from the feeder to the stockpile, so workaround ahoy
+                UnloadDuration = 20;
             }
 
             Toil wait = Toils_General.Wait(UnloadDuration);

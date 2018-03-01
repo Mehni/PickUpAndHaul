@@ -51,7 +51,7 @@ namespace PickUpAndHaul
                 }))();
             }
             catch (TypeLoadException) { }            
-            Log.Message("PickUpAndHaul v0.18.1.6 welcomes you to RimWorld with pointless logspam.");
+            Log.Message("PickUpAndHaul v0.18.1.7 welcomes you to RimWorld with pointless logspam.");
         }
 
 

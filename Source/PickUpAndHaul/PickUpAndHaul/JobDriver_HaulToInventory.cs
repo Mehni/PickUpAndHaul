@@ -14,12 +14,13 @@ namespace PickUpAndHaul
             return this.pawn.Reserve(this.job.targetA, this.job, 1, -1, null);
         }
 
+
+        //reserve, goto, take, check for more. Branches off to "all over the place"
         protected override IEnumerable<Toil> MakeNewToils()
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
-
-            DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false); //null;
+            DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
 
             Toil wait = Toils_General.Wait(2);
             Toil reserveTargetA = Toils_Reserve.Reserve(TargetIndex.A, 1, -1, null);
@@ -47,6 +48,7 @@ namespace PickUpAndHaul
                     Thing thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
                     Toils_Haul.ErrorCheckForCarry(actor, thing);
 
+                    //get max we can pick up
                     int num = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
@@ -65,7 +67,7 @@ namespace PickUpAndHaul
                     }
                     catch (TypeLoadException) { }
 
-
+                    //can't store more, so queue up hauling if we can + end the current job (smooth/instant transition)
                     if (num <= 0)
                     {
                         Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
@@ -81,7 +83,6 @@ namespace PickUpAndHaul
                         if (ModCompatibilityCheck.AllowToolIsActive)
                         {
                             //check BEFORE absorbing the thing, designation disappears when it's in inventory :^)
-                            //HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
                             if (pawn.Map.designationManager.DesignationOn(thing)?.def == HaulUrgentlyDesignation)
                             {
                                 isUrgent = true;
@@ -133,14 +134,15 @@ namespace PickUpAndHaul
                     && (!t.IsInValidBestStorage())
                     && !t.IsForbidden(actor)
                     && !(t is Corpse)
+                    && (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, (HaulAIUtility.StoragePriorityAtFor(t.Position, t)), actor.Faction, out IntVec3 storeCell, true))
                     && (extraValidator == null || extraValidator (t))
                     && actor.CanReserve(t, 1, -1, null, false);
 
                 Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, 
                     TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), 12f, validator, null, 0, -1, false, RegionType.Set_Passable, false);
 
-                float usedBulkByPct = 0f;
-                float usedWeightByPct = 0f;
+                float usedBulkByPct = 1f;
+                float usedWeightByPct = 1f;
 
                 try
                 {
