@@ -19,16 +19,14 @@ Want field-doctoring to be even better? Use [Inventory Medicine](https://steamco
 ## Limitations
 - Only player-owned humanlikes can use their inventory to haul. Rule of thumb: If you can order it to equip a gun or wear a pair of pants, it'll use their inventory to haul for you. No guests, animals pretending to be robots, dogs, prisoners, or whatever else. To modders: Inherit from BasePawn WITHOUT including your own, and we're good.
 
-- There's a bug in Simple Sidearms where they can't drop chunks. If you have Simple Sidearms, pawns won't stuff chunks in their inventory on their own accord. If they get told to pick it up, they still will. I can't fix bugs in other peoples mods.
-
 - The unloading isn't 100% perfect, but it's pretty darn close.
 
 ## Compatibility notes:
 Works in unison with AllowTool's Haul Urgently designation.
 
-Works well with Simple Sidearms, with the chunk limitation.
-
 Fully Combat Extended compatible. Backpacks, bulk, mass - it all works.
+
+Works well with Simple Sidearms, because thanks to open source I CAN fix bugs in other peoples mods.
 
 ## Future plans:
 - Many more refinements.
