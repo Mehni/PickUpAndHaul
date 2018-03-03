@@ -83,19 +83,19 @@ namespace PickUpAndHaul
                 {
                     Thing thing = this.job.GetTarget(TargetIndex.A).Thing;
                     if (thing == null || !this.pawn.inventory.innerContainer.Contains(thing))
-					{
+                    { 
                         carriedThing.Remove(thing);
                         this.EndJobWith(JobCondition.Incompletable);
                         return;
                     }
                     if (!this.pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStoreable)
-					{
+                    { 
                         this.pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, this.countToDrop, out thing, null);
                         this.EndJobWith(JobCondition.Succeeded);
                         carriedThing.Remove(thing);
                     }
-					else
-					{
+                    else
+                    { 
                         this.pawn.inventory.innerContainer.TryTransferToContainer(thing, this.pawn.carryTracker.innerContainer, this.countToDrop, out thing, true);
                         this.job.count = this.countToDrop;
                         this.job.SetTarget(TargetIndex.A, thing);

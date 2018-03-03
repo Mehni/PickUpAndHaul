@@ -14,7 +14,7 @@ namespace PickUpAndHaul
 
         public override bool ShouldSkip(Pawn pawn)
         {
-            return base.ShouldSkip(pawn) && (pawn.Faction != Faction.OfPlayer) && (!pawn.RaceProps.Humanlike); //hospitality check + misc robots & animals
+            return base.ShouldSkip(pawn) || pawn.Faction != Faction.OfPlayer || (!pawn.RaceProps.Humanlike); //hospitality check + misc robots & animals
         }
 
         //pick up stuff until you can't anymore,
