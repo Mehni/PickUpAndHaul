@@ -41,5 +41,13 @@ namespace PickUpAndHaul
                 return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "ExtendedStorageFluffyHarmonised");
             }
         }
+
+        public static bool WhileYoureUpIsActive
+        {
+            get
+            {
+                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "While You're Up");
+            }
+        }
     }
 }

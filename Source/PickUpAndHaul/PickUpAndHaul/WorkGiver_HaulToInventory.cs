@@ -33,10 +33,6 @@ namespace PickUpAndHaul
             
             if (t.IsForbidden(pawn) || StoreUtility.IsInValidBestStorage(t)) return null;
 
-            ////because who doesn't love hardcoded checks?
-            //turns out I *can* fix issues in other people's mods. All it takes is a pull request :)
-            //if (ModCompatibilityCheck.SimplesidearmsIsActive && t.def.defName.Contains("Chunk")) return HaulAIUtility.HaulToStorageJob(pawn, t);
-
             //bulky gear (power armor + minigun) so don't bother.
             if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return null;
 

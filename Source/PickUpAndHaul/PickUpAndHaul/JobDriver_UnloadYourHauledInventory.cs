@@ -23,8 +23,7 @@ namespace PickUpAndHaul
         {
             return true;
         }
-
-
+        
         /// <summary>
         /// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
         /// </summary>
@@ -85,7 +84,7 @@ namespace PickUpAndHaul
                     if (thing == null || !this.pawn.inventory.innerContainer.Contains(thing))
                     { 
                         carriedThing.Remove(thing);
-                        this.EndJobWith(JobCondition.Incompletable);
+                        pawn.jobs.curDriver.JumpToToil(wait);
                         return;
                     }
                     if (!this.pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStoreable)
@@ -95,7 +94,7 @@ namespace PickUpAndHaul
                         carriedThing.Remove(thing);
                     }
                     else
-                    { 
+                    {
                         this.pawn.inventory.innerContainer.TryTransferToContainer(thing, this.pawn.carryTracker.innerContainer, this.countToDrop, out thing, true);
                         this.job.count = this.countToDrop;
                         this.job.SetTarget(TargetIndex.A, thing);
@@ -121,6 +120,20 @@ namespace PickUpAndHaul
             yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.Touch);
             yield return carryToCell;
             yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
+
+            //If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
+            //We still gotta release though, mostly because of Extended Storage.
+            Toil releaseReservation = new Toil
+            {
+                initAction = () =>
+                {
+                    if (pawn.Map.reservationManager.ReservedBy(this.job.targetB, pawn, pawn.CurJob))
+                    {
+                        pawn.Map.reservationManager.Release(this.job.targetB, pawn, pawn.CurJob);
+                    }
+                }
+            };
+            yield return releaseReservation;
             yield return Toils_Jump.Jump(wait);
             yield return celebrate;
         }
@@ -129,28 +142,32 @@ namespace PickUpAndHaul
         {
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThings = itemsTakenToInventory.GetHashSet();
-            
+
             //find the overlap.
             IEnumerable<Thing> potentialThingsToUnload =
                 from t in pawn.inventory.innerContainer
+                //orderby t.def.category
                 where carriedThings.Contains(t)
                 select t;
 
-            foreach (Thing thing in carriedThings)
+            //pawns seem to ignore OrderBy, probably because it's a hashset or something.
+
+            foreach (Thing thing in carriedThings/*.OrderBy(t => t.def.category)*/)
             {
-                try
-                {
-                    if (thing == null)
-                    {
-                        carriedThings.Remove(thing);
-                    }
-                }
-                catch (Exception arg)
-                {
-                    Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
-                    carriedThings.Clear();
-                    pawn.inventory.UnloadEverything = true;
-                }
+                //commented out because if it were actually functional, I'm removing items from a hashset I'm iterating over. Herp a derp.
+                //try
+                //{
+                //    if (thing == null)
+                //    {
+                //        carriedThings.Remove(thing);
+                //    }
+                //}
+                //catch (Exception arg)
+                //{
+                //    Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
+                //    carriedThings.Clear();
+                //    pawn.inventory.UnloadEverything = true;
+                //}
                 
                 //merged partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
@@ -161,6 +178,7 @@ namespace PickUpAndHaul
                     IEnumerable<Thing> dirtyStragglers =
                         from straggler in pawn.inventory.innerContainer
                         where straggler.def == stragglerDef
+                        //orderby straggler.def.category
                         select straggler;
 
                     carriedThings.Remove(thing);

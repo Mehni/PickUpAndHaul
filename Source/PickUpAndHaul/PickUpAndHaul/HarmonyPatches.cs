@@ -50,8 +50,23 @@ namespace PickUpAndHaul
                     }
                 }))();
             }
-            catch (TypeLoadException) { }            
-            Log.Message("PickUpAndHaul v0.18.1.7 welcomes you to RimWorld with pointless logspam.");
+            catch (TypeLoadException) { }
+            
+            //Thanks to AlexTD for the While You're Up functionality improvement
+            try
+            {
+                ((Action)(() =>
+                {
+                    if (ModCompatibilityCheck.WhileYoureUpIsActive)
+                    {
+                        harmony.Patch(AccessTools.Method(typeof(WhileYoureUp.Utils), "MaybeHaulOtherStuffFirst"),
+                            null, new HarmonyMethod(typeof(HarmonyPatches), nameof(WhileYoureUpMaybeHaulOtherStuffFirst_PostFix)), null);
+                    }
+                }))();
+            }
+            catch (TypeLoadException) { }
+            
+            Log.Message("PickUpAndHaul v0.18.1.8 welcomes you to RimWorld with pointless logspam.");
         }
 
 
@@ -89,10 +104,8 @@ namespace PickUpAndHaul
         private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            if (takenToInventory == null)
-            {
-                return true;
-            }
+            if (takenToInventory == null) return true;
+
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             if (carriedThing.Contains(thing))
@@ -134,10 +147,10 @@ namespace PickUpAndHaul
             {
                 PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(__instance.pawn, true);
             }
-            else //we could politely ask
-            {
-                PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(__instance.pawn);
-            }
+            //else //we could politely ask
+            //{
+            //    PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(__instance.pawn);
+            //}
         }
 
         public static void IdleJoy_Postfix(ref Pawn pawn)
@@ -180,6 +193,21 @@ namespace PickUpAndHaul
                 }
                 yield return instruction;
             }
+        }
+
+        //Thanks to AlexTD
+        //Job WhileYoureUp.Utils.MaybeHaulOtherStuffFirst(Pawn pawn, LocalTargetInfo end)
+        public static void WhileYoureUpMaybeHaulOtherStuffFirst_PostFix(Pawn pawn, LocalTargetInfo end, ref Job __result)
+        {
+            if (__result == null || __result.def != JobDefOf.HaulToCell) return;
+
+            WorkGiver_HaulToInventory worker = pawn.workSettings.WorkGiversInOrderNormal.FirstOrDefault(wg => wg is WorkGiver_HaulToInventory) as WorkGiver_HaulToInventory;
+            if (worker == null) return;
+
+            Job myJob = worker.JobOnThing(pawn, __result.targetA.Thing, false);
+            if (myJob == null) return;
+
+            __result = myJob;
         }
     }
 }

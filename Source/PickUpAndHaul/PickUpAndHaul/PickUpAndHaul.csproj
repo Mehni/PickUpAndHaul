@@ -56,6 +56,10 @@
       <HintPath>..\..\..\..\..\RimWorldWin_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="WhileYoureUp">
+      <HintPath>..\..\..\..\..\..\..\workshop\content\294100\1161112205\Assemblies\WhileYoureUp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CompHauledToInventory.cs" />

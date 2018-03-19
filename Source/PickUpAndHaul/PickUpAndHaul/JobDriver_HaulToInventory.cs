@@ -9,11 +9,12 @@ namespace PickUpAndHaul
 {
     public class JobDriver_HaulToInventory : JobDriver
     {
+
+
         public override bool TryMakePreToilReservations()
         {
             return this.pawn.Reserve(this.job.targetA, this.job, 1, -1, null);
         }
-
 
         //reserve, goto, take, check for more. Branches off to "all over the place"
         protected override IEnumerable<Toil> MakeNewToils()
@@ -22,10 +23,25 @@ namespace PickUpAndHaul
             HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
             DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
 
+            //Thanks to AlexTD for the more dynamic search range
+            float searchForOthersRangeFraction = 0.5f;
+            float distanceToOthers = 0f;
+
             Toil wait = Toils_General.Wait(2);
             Toil reserveTargetA = Toils_Reserve.Reserve(TargetIndex.A, 1, -1, null);
-            Toil checkForOtherItemsToHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, null);
-            Toil checkForOtherItemsToUrgentlyHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, (Thing x) => pawn.Map.designationManager.DesignationOn(x)?.def == HaulUrgentlyDesignation);
+
+            Toil calculateExtraDistanceToGo = new Toil
+            {
+                initAction = () =>
+                {
+                    if (StoreUtility.TryFindStoreCellNearColonyDesperate(this.job.targetA.Thing, this.pawn, out IntVec3 storeLoc))
+                        distanceToOthers = (storeLoc - job.targetA.Thing.Position).LengthHorizontal * searchForOthersRangeFraction;
+                }
+            };
+            yield return calculateExtraDistanceToGo;
+
+            Toil checkForOtherItemsToHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers, null);
+            Toil checkForOtherItemsToUrgentlyHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers, (Thing x) => pawn.Map.designationManager.DesignationOn(x)?.def == HaulUrgentlyDesignation);
 
             yield return reserveTargetA;
 
@@ -35,7 +51,7 @@ namespace PickUpAndHaul
                 {
                     this.pawn.pather.StartPath(this.TargetThingA, PathEndMode.ClosestTouch);
                 },
-                defaultCompleteMode = ToilCompleteMode.PatherArrival
+                defaultCompleteMode = ToilCompleteMode.PatherArrival,
             };
             gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
             yield return gotoThing;
@@ -121,25 +137,26 @@ namespace PickUpAndHaul
 
         //regular Toils_Haul.CheckForGetOpportunityDuplicate isn't going to work for our purposes, since we're not carrying anything. 
         //Carrying something yields weird results with unspawning errors when transfering to inventory, so we copy-past-- I mean, implement our own.
-        public Toil CheckForOtherItemsToHaulToInventory(Toil getHaulTargetToil, TargetIndex haulableInd, Predicate<Thing> extraValidator = null)
+        public Toil CheckForOtherItemsToHaulToInventory(Toil getHaulTargetToil, TargetIndex haulableInd, float distanceToOthers, Predicate<Thing> extraValidator = null)
         {
             Toil toil = new Toil();
             toil.initAction = delegate
             {
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
+                IntVec3 storeCell = IntVec3.Invalid;
 
                 Predicate<Thing> validator = (Thing t) => t.Spawned
                     && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
                     && (!t.IsInValidBestStorage())
                     && !t.IsForbidden(actor)
                     && !(t is Corpse)
-                    && (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, (HaulAIUtility.StoragePriorityAtFor(t.Position, t)), actor.Faction, out IntVec3 storeCell, true))
+                    && (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, (HaulAIUtility.StoragePriorityAtFor(t.Position, t)), actor.Faction, out storeCell, true))
                     && (extraValidator == null || extraValidator (t))
                     && actor.CanReserve(t, 1, -1, null, false);
 
                 Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, 
-                    TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), 12f, validator, null, 0, -1, false, RegionType.Set_Passable, false);
+                    TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), Math.Max(distanceToOthers, 12f), validator, null, 0, -1, false, RegionType.Set_Passable, false);
 
                 float usedBulkByPct = 1f;
                 float usedWeightByPct = 1f;
@@ -162,6 +179,7 @@ namespace PickUpAndHaul
                 if (thing != null && (MassUtility.EncumbrancePercent(actor) <= 0.9f || usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f))
                 {
                     curJob.SetTarget(haulableInd, thing);
+                    actor.Reserve(storeCell, this.job, 1, -1, null);
                     actor.jobs.curDriver.JumpToToil(getHaulTargetToil);
                     return;
                 }

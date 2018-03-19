@@ -6,7 +6,6 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 
-
 namespace PickUpAndHaul
 {
     public class PawnUnloadChecker
@@ -26,13 +25,9 @@ namespace PickUpAndHaul
 
             if (carriedThing.Count != 0)
             {
-                Thing thing = null;
                 try
                 {
-                    if (carriedThing.Contains(thing))
-                    {
-                        carriedThing.Remove(thing);
-                    }
+                    carriedThing.RemoveWhere((Thing t) => t == null || t.ThingID == null || t.def == null);
                 }
                 catch (Exception arg)
                 {
@@ -75,12 +70,12 @@ namespace PickUpAndHaul
                     }
                 }
             }
-            
+
             if (Find.TickManager.TicksGame % 50 == 0 && pawn.inventory.innerContainer.Count < carriedThing.Count)
             {
                 Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
                 carriedThing.Clear();
-                pawn.inventory.UnloadEverything = true;                
+                pawn.inventory.UnloadEverything = true;
             }
         }
     }
