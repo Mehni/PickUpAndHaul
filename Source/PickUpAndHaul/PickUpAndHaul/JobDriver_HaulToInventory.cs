@@ -76,8 +76,7 @@ namespace PickUpAndHaul
                             if (ModCompatibilityCheck.CombatExtendedIsActive)
                             {
                                 CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                ceCompInventory.CanFitInInventory(thing, out int count, false, false);
-                                num = count;
+                                ceCompInventory.CanFitInInventory(thing, out num, false, false);
                             }
                         }))();
                     }

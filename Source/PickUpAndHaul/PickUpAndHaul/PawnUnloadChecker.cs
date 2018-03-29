@@ -27,7 +27,7 @@ namespace PickUpAndHaul
             {
                 try
                 {
-                    carriedThing.RemoveWhere((Thing t) => t == null || t.ThingID == null || t.def == null);
+                    carriedThing.RemoveWhere((Thing t) => t?.ThingID == null || t.def == null);
                 }
                 catch (Exception arg)
                 {

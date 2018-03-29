@@ -65,8 +65,8 @@ namespace PickUpAndHaul
                 }))();
             }
             catch (TypeLoadException) { }
-            
-            Log.Message("PickUpAndHaul v0.18.1.8 welcomes you to RimWorld with pointless logspam.");
+
+            Log.Message("PickUpAndHaul v0.18.1.9 welcomes you to RimWorld with pointless logspam.");
         }
 
 
@@ -78,6 +78,7 @@ namespace PickUpAndHaul
                 CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
                 if (pawn.RaceProps.Humanlike
+                    && pawn.Faction == Faction.OfPlayer
                     && t is Corpse == false
                     && takenToInventory != null
                     && !(t.def.defName.Contains("Chunk")) //most of the time we don't have space for it

@@ -47,8 +47,7 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                
-                ThingStackPart unloadableThing = FirstUnloadableThing(pawn);                    
+                    ThingStackPart unloadableThing = FirstUnloadableThing(pawn);                    
 
                     if (unloadableThing.Count == 0 && carriedThing.Count == 0)
                     {
@@ -138,7 +137,7 @@ namespace PickUpAndHaul
             yield return celebrate;
         }
 
-        ThingStackPart FirstUnloadableThing(Pawn pawn)
+        static ThingStackPart FirstUnloadableThing(Pawn pawn)
         {
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThings = itemsTakenToInventory.GetHashSet();

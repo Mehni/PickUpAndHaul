@@ -38,7 +38,7 @@ namespace PickUpAndHaul
         {
             get
             {
-                return ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "ExtendedStorageFluffyHarmonised");
+                return (ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "ExtendedStorageFluffyHarmonised") || ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Core_SK"));
             }
         }
 
