@@ -66,6 +66,8 @@ namespace PickUpAndHaul
             }
             catch (TypeLoadException) { }
 
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
+
             Log.Message("PickUpAndHaul v0.18.1.9 welcomes you to RimWorld with pointless logspam.");
         }
 
