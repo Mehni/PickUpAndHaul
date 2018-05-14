@@ -21,36 +21,36 @@ namespace PickUpAndHaul
         //while you're up and about, pick up something and haul it
         //before you go out, empty your pockets
 
-        public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false)
+        public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
 
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null) return null;
 
-            if (t is Corpse) return null;
+            if (thing is Corpse) return null;
 
-            if (!HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, forced)) return null;
+            if (!HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)) return null;
             
-            if (t.IsForbidden(pawn) || StoreUtility.IsInValidBestStorage(t)) return null;
+            if (thing.IsForbidden(pawn) || StoreUtility.IsInValidBestStorage(thing)) return null;
 
             //bulky gear (power armor + minigun) so don't bother.
             if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return null;
 
-            StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(t.Position, t);
-            if (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true)) 
+            StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(thing.Position, thing);
+            if (StoreUtility.TryFindBestBetterStoreCellFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true)) 
             {
                 //since we've gone through all the effort of getting the loc, might as well use it.
                 //Don't multi-haul food to hoppers.
-                if (t.def.IsNutritionGivingIngestible)
+                if (thing.def.IsNutritionGivingIngestible)
                 {
-                    if (t.def.ingestible.preferability == FoodPreferability.RawBad || t.def.ingestible.preferability == FoodPreferability.RawTasty)
+                    if (thing.def.ingestible.preferability == FoodPreferability.RawBad || thing.def.ingestible.preferability == FoodPreferability.RawTasty)
                     {
-                        List<Thing> thingList = storeCell.GetThingList(t.Map);
+                        List<Thing> thingList = storeCell.GetThingList(thing.Map);
                         for (int i = 0; i < thingList.Count; i++)
                         {
-                            Thing thing = thingList[i];
-                            if (thing.def == ThingDefOf.Hopper)
-                            return HaulAIUtility.HaulToStorageJob(pawn, t);
+                            Thing thingAtCell = thingList[i];
+                            if (thingAtCell.def == ThingDefOf.Hopper)
+                            return HaulAIUtility.HaulToStorageJob(pawn, thing);
                         }
                     }
                 }
@@ -63,16 +63,16 @@ namespace PickUpAndHaul
 
             if (MassUtility.EncumbrancePercent(pawn) >= 0.80f)
             {
-                Job haul = HaulAIUtility.HaulToStorageJob(pawn, t);
+                Job haul = HaulAIUtility.HaulToStorageJob(pawn, thing);
                 return haul;
             }
 
             //credit to Dingo
-            int c = MassUtility.CountToPickUpUntilOverEncumbered(pawn, t);
+            int c = MassUtility.CountToPickUpUntilOverEncumbered(pawn, thing);
 
-            if (c == 0) return HaulAIUtility.HaulToStorageJob(pawn, t);
+            if (c == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
-            return new Job(PickUpAndHaulJobDefOf.HaulToInventory, t)
+            return new Job(PickUpAndHaulJobDefOf.HaulToInventory, thing)
             {
                 count = c
             };
