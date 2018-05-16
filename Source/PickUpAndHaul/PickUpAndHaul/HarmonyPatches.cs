@@ -93,10 +93,9 @@ namespace PickUpAndHaul
                         return false;
                     }
 
-                    Job haul = new Job(PickUpAndHaulJobDefOf.HaulToInventory, t)
-                    {
-                        count = t.stackCount
-                    };
+                    WorkGiver_HaulToInventory haulWG = (WorkGiver_HaulToInventory)pawn.workSettings.WorkGiversInOrderNormal.Find(wg => wg is WorkGiver_HaulToInventory);
+                    
+                    Job haul = haulWG.JobOnThing(pawn, t, forced);
                     __result = haul;
                     return false;
                 }
