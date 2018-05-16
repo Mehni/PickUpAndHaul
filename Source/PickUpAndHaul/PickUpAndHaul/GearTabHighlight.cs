@@ -45,8 +45,6 @@ namespace PickUpAndHaul
         public static Color GetColorForHauled(Pawn pawn, Thing thing)
         {
             CompHauledToInventory comp = pawn.GetComp<CompHauledToInventory>();
-            Log.Message(pawn + " has comp " + pawn.GetComp<CompHauledToInventory>().GetHashSet().ToStringSafeEnumerable());
-            Log.Message(thing + " in there?");
             if (comp.GetHashSet().Contains(thing))
                 return Color.Lerp(Color.grey, Color.red, 0.5f);
             return Color.white;
