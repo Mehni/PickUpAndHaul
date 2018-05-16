@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Verse;
 using Verse.AI;
 using RimWorld;
@@ -126,7 +125,7 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                    if (pawn.Map.reservationManager.ReservedBy(this.job.targetB, pawn, pawn.CurJob))
+                    if (pawn.Map.reservationManager.ReservedBy(this.job.targetB, pawn, pawn.CurJob) && !ModCompatibilityCheck.HCSKIsActive)
                     {
                         pawn.Map.reservationManager.Release(this.job.targetB, pawn, pawn.CurJob);
                     }
@@ -145,39 +144,19 @@ namespace PickUpAndHaul
             //find the overlap.
             IEnumerable<Thing> potentialThingsToUnload =
                 from t in pawn.inventory.innerContainer
-                //orderby t.def.category
                 where carriedThings.Contains(t)
                 select t;
 
-            //pawns seem to ignore OrderBy, probably because it's a hashset or something.
-
-            foreach (Thing thing in carriedThings/*.OrderBy(t => t.def.category)*/)
+            foreach (Thing thing in carriedThings.OrderBy(t => t.def.FirstThingCategory.index))
             {
-                //commented out because if it were actually functional, I'm removing items from a hashset I'm iterating over. Herp a derp.
-                //try
-                //{
-                //    if (thing == null)
-                //    {
-                //        carriedThings.Remove(thing);
-                //    }
-                //}
-                //catch (Exception arg)
-                //{
-                //    Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
-                //    carriedThings.Clear();
-                //    pawn.inventory.UnloadEverything = true;
-                //}
-                
                 //merged partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
                 {
-                    ThingDef stragglerDef = thing.def;
-                    
+                    ThingDef stragglerDef = thing.def;                    
                     //we have no method of grabbing the newly generated thingID. This is the solution to that.
                     IEnumerable<Thing> dirtyStragglers =
                         from straggler in pawn.inventory.innerContainer
                         where straggler.def == stragglerDef
-                        //orderby straggler.def.category
                         select straggler;
 
                     carriedThings.Remove(thing);
