@@ -66,7 +66,7 @@ namespace PickUpAndHaul
             }
             catch (TypeLoadException) { }
 
-            Log.Message("PickUpAndHaul v0.18.2.0 welcomes you to RimWorld with pointless logspam.");
+            Log.Message("PickUpAndHaul v1.0.0.0 welcomes you to RimWorld with pointless logspam.");
         }
 
 
@@ -84,7 +84,7 @@ namespace PickUpAndHaul
                     && !(t.def.defName.Contains("Chunk")) //most of the time we don't have space for it
                     )
                 {
-                    StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(t.Position, t);
+                    StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(t);
                     if (!StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true))
                     {
                         JobFailReason.Is("NoEmptyPlaceLower".Translate());
@@ -202,8 +202,7 @@ namespace PickUpAndHaul
         {
             if (__result == null || __result.def != JobDefOf.HaulToCell) return;
 
-            WorkGiver_HaulToInventory worker = pawn.workSettings.WorkGiversInOrderNormal.FirstOrDefault(wg => wg is WorkGiver_HaulToInventory) as WorkGiver_HaulToInventory;
-            if (worker == null) return;
+            if (!(pawn.workSettings.WorkGiversInOrderNormal.FirstOrDefault(wg => wg is WorkGiver_HaulToInventory) is WorkGiver_HaulToInventory worker)) return;
 
             Job myJob = worker.JobOnThing(pawn, __result.targetA.Thing, false);
             if (myJob == null) return;

@@ -150,7 +150,7 @@ namespace PickUpAndHaul
                     && (!t.IsInValidBestStorage())
                     && !t.IsForbidden(actor)
                     && !(t is Corpse)
-                    && (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, (HaulAIUtility.StoragePriorityAtFor(t.Position, t)), actor.Faction, out storeCell, true))
+                    && (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, (StoreUtility.CurrentStoragePriorityOf(t)), actor.Faction, out storeCell, true))
                     && (extraValidator == null || extraValidator (t))
                     && actor.CanReserve(t, 1, -1, null, false);
 

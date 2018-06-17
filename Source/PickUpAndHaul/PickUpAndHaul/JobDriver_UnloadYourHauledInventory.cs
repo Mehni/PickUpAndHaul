@@ -46,7 +46,7 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                    ThingStackPart unloadableThing = FirstUnloadableThing(pawn);                    
+                    ThingCount unloadableThing = FirstUnloadableThing(pawn);                    
 
                     if (unloadableThing.Count == 0 && carriedThing.Count == 0)
                     {
@@ -55,7 +55,7 @@ namespace PickUpAndHaul
 
                     if (unloadableThing.Count != 0)
                     {
-                        StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
+                        //StoragePriority currentPriority = StoreUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
                         if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
                         {
                             this.pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing thing, null);
@@ -85,7 +85,7 @@ namespace PickUpAndHaul
                         pawn.jobs.curDriver.JumpToToil(wait);
                         return;
                     }
-                    if (!this.pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStoreable)
+                    if (!this.pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
                     { 
                         this.pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, this.countToDrop, out thing, null);
                         this.EndJobWith(JobCondition.Succeeded);
@@ -136,7 +136,7 @@ namespace PickUpAndHaul
             yield return celebrate;
         }
 
-        static ThingStackPart FirstUnloadableThing(Pawn pawn)
+        static ThingCount FirstUnloadableThing(Pawn pawn)
         {
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThings = itemsTakenToInventory.GetHashSet();
@@ -147,7 +147,7 @@ namespace PickUpAndHaul
                 where carriedThings.Contains(t)
                 select t;
 
-            foreach (Thing thing in carriedThings.OrderBy(t => t.def.FirstThingCategory.index))
+            foreach (Thing thing in carriedThings.OrderBy(t => t.def.FirstThingCategory?.index))
             {
                 //merged partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
@@ -163,12 +163,12 @@ namespace PickUpAndHaul
 
                     foreach (Thing dirtyStraggler in dirtyStragglers)
                     {
-                        return new ThingStackPart(dirtyStraggler, dirtyStraggler.stackCount);
+                        return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
                     }
                 }
-                return new ThingStackPart(thing, thing.stackCount);
+                return new ThingCount(thing, thing.stackCount);
             }
-            return default(ThingStackPart);
+            return default(ThingCount);
         }
     }
 }
