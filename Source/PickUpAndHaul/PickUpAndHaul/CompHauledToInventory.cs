@@ -9,7 +9,7 @@ namespace PickUpAndHaul
 
         public HashSet<Thing> GetHashSet()
         {
-            TakenToInventory.Remove(null);
+            TakenToInventory.RemoveWhere(x => x == null);
             return TakenToInventory;
         }
         
