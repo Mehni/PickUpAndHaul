@@ -38,7 +38,7 @@ namespace PickUpAndHaul
 
             harmony.Patch(AccessTools.Method(typeof(JobGiver_Idle), "TryGiveJob"), null,
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
-            
+
             try
             {
                 ((Action)(() =>
@@ -68,7 +68,6 @@ namespace PickUpAndHaul
 
             Log.Message("PickUpAndHaul v0.1.0.1 welcomes you to RimWorld with pointless logspam.");
         }
-
 
         private static bool AllowToolHaulUrgentlyJobOnThing_PreFix(ref Job __result, Pawn pawn, Thing t, bool forced = false)
         {

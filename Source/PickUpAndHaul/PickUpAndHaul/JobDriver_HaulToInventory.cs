@@ -1,26 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using RimWorld;
+using UnityEngine;
 using Verse;
 using Verse.AI;
-using UnityEngine;
 
 namespace PickUpAndHaul
 {
     public class JobDriver_HaulToInventory : JobDriver
     {
-
-
-        public override bool TryMakePreToilReservations()
+        public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            return this.pawn.Reserve(this.job.targetA, this.job, 1, -1, null);
+            return this.pawn.Reserve(this.job.targetA, this.job) && pawn.Reserve(job.targetB, this.job);
         }
 
         //reserve, goto, take, check for more. Branches off to "all over the place"
         protected override IEnumerable<Toil> MakeNewToils()
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
             DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
 
             //Thanks to AlexTD for the more dynamic search range
@@ -28,7 +25,7 @@ namespace PickUpAndHaul
             float distanceToOthers = 0f;
 
             Toil wait = Toils_General.Wait(2);
-            Toil reserveTargetA = Toils_Reserve.Reserve(TargetIndex.A, 1, -1, null);
+            Toil reserveTargetA = Toils_Reserve.Reserve(TargetIndex.A);
 
             Toil calculateExtraDistanceToGo = new Toil
             {
@@ -40,8 +37,8 @@ namespace PickUpAndHaul
             };
             yield return calculateExtraDistanceToGo;
 
-            Toil checkForOtherItemsToHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers, null);
-            Toil checkForOtherItemsToUrgentlyHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers, (Thing x) => pawn.Map.designationManager.DesignationOn(x)?.def == HaulUrgentlyDesignation);
+            Toil checkForOtherItemsToHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers);
+            Toil checkForOtherItemsToUrgentlyHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers, x => pawn.Map.designationManager.DesignationOn(x)?.def == HaulUrgentlyDesignation);
 
             yield return reserveTargetA;
 
@@ -51,7 +48,7 @@ namespace PickUpAndHaul
                 {
                     this.pawn.pather.StartPath(this.TargetThingA, PathEndMode.ClosestTouch);
                 },
-                defaultCompleteMode = ToilCompleteMode.PatherArrival,
+                defaultCompleteMode = ToilCompleteMode.PatherArrival
             };
             gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
             yield return gotoThing;
@@ -65,7 +62,7 @@ namespace PickUpAndHaul
                     Toils_Haul.ErrorCheckForCarry(actor, thing);
 
                     //get max we can pick up
-                    int num = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
+                    int num = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing), job.count);
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
                     // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
@@ -76,7 +73,7 @@ namespace PickUpAndHaul
                             if (ModCompatibilityCheck.CombatExtendedIsActive)
                             {
                                 CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                ceCompInventory.CanFitInInventory(thing, out num, false, false);
+                                ceCompInventory.CanFitInInventory(thing, out num);
                             }
                         }))();
                     }
@@ -86,9 +83,9 @@ namespace PickUpAndHaul
                     if (num <= 0)
                     {
                         Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
-                        if (haul?.TryMakePreToilReservations(actor) ?? false)
+                        if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                         {
-                            actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                            actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
                         }
                         actor.jobs.curDriver.JumpToToil(wait);
                     }
@@ -104,7 +101,7 @@ namespace PickUpAndHaul
                             }
                         }
 
-                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(num), true); 
+                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(num)); 
                         takenToInventory.RegisterHauledItem(thing);
 
                         try
@@ -145,60 +142,59 @@ namespace PickUpAndHaul
                 Job curJob = actor.jobs.curJob;
                 IntVec3 storeCell = IntVec3.Invalid;
 
-                Predicate<Thing> validator = (Thing t) => t.Spawned
-                    && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
-                    && (!t.IsInValidBestStorage())
-                    && !t.IsForbidden(actor)
-                    && !(t is Corpse)
-                    && (StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, (StoreUtility.CurrentStoragePriorityOf(t)), actor.Faction, out storeCell, true))
-                    && (extraValidator == null || extraValidator (t))
-                    && actor.CanReserve(t, 1, -1, null, false);
+                bool Validator(Thing t) => t.Spawned && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
+                                          && !t.IsInValidBestStorage()
+                                          && !t.IsForbidden(actor)
+                                          && !(t is Corpse)
+                                          && StoreUtility.TryFindBestBetterStoreCellFor(t, this.pawn, this.pawn.Map, StoreUtility.CurrentStoragePriorityOf(t), actor.Faction, out storeCell)
+                                          && (extraValidator == null || extraValidator(t))
+                                          && actor.CanReserve(t);
 
                 Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, 
-                    TraverseParms.For(actor, Danger.Deadly, TraverseMode.ByPawn, false), Math.Max(distanceToOthers, 12f), validator, null, 0, -1, false, RegionType.Set_Passable, false);
+                    TraverseParms.For(actor), Math.Max(distanceToOthers, 12f), Validator);
 
-                float usedBulkByPct = 1f;
-                float usedWeightByPct = 1f;
+                //float usedBulkByPct = 1f;
+                //float usedWeightByPct = 1f;
 
-                try
-                {
-                    ((Action)(() =>
-                    {
-                        if (ModCompatibilityCheck.CombatExtendedIsActive)
-                        {
-                            CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                            usedWeightByPct = ceCompInventory.currentWeight / ceCompInventory.capacityWeight;
-                            usedBulkByPct = ceCompInventory.currentBulk / ceCompInventory.capacityBulk;
-                        }
-                    }))();
-                }
-                catch (TypeLoadException) { }
+                //try
+                //{
+                //    ((Action)(() =>
+                //    {
+                //        if (ModCompatibilityCheck.CombatExtendedIsActive)
+                //        {
+                //            CompInventory ceCompInventory = actor.GetComp<CompInventory>();
+                //            usedWeightByPct = ceCompInventory.currentWeight / ceCompInventory.capacityWeight;
+                //            usedBulkByPct = ceCompInventory.currentBulk / ceCompInventory.capacityBulk;
+                //        }
+                //    }))();
+                //}
+                //catch (TypeLoadException) { }
 
 
-                if (thing != null && (MassUtility.EncumbrancePercent(actor) <= 0.9f || usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f))
+                if (thing != null && (MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/))
                 {
                     curJob.SetTarget(haulableInd, thing);
-                    actor.Reserve(storeCell, this.job, 1, -1, null);
+                    actor.Reserve(storeCell, this.job);
+                    this.job.count = 99999; //done for "num", to solve scenarios like hauling 150 meat to single free spot near stove
                     actor.jobs.curDriver.JumpToToil(getHaulTargetToil);
                     return;
                 }
                 if (thing != null)
                 {
                     Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
-                    if (haul?.TryMakePreToilReservations(actor) ?? false)
+                    if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                     {
-                        actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                        //note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
+                        actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
                         this.EndJobWith(JobCondition.Succeeded);
+                        return;
                     }
                 }
-                if (thing == null)
+                Job unload = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
+                if (unload.TryMakePreToilReservations(actor, false))
                 {
-                    Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
-                    if (job.TryMakePreToilReservations(actor))
-                    {
-                        actor.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
-                        this.EndJobWith(JobCondition.Succeeded);
-                    }
+                    actor.jobs.jobQueue.EnqueueFirst(unload, JobTag.Misc);
+                    this.EndJobWith(JobCondition.Succeeded);
                 }
             };
             return toil;

@@ -31,7 +31,7 @@ namespace PickUpAndHaul
 
             if (!HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)) return null;
             
-            if (thing.IsForbidden(pawn) || StoreUtility.IsInValidBestStorage(thing)) return null;
+            if (thing.IsForbidden(pawn) || thing.IsInValidBestStorage()) return null;
 
             //bulky gear (power armor + minigun) so don't bother.
             if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return null;
@@ -48,8 +48,7 @@ namespace PickUpAndHaul
                         List<Thing> thingList = storeCell.GetThingList(thing.Map);
                         for (int i = 0; i < thingList.Count; i++)
                         {
-                            Thing thingAtCell = thingList[i];
-                            if (thingAtCell.def == ThingDefOf.Hopper)
+                            if (thingList[i].def == ThingDefOf.Hopper)
                             return HaulAIUtility.HaulToStorageJob(pawn, thing);
                         }
                     }
@@ -70,9 +69,13 @@ namespace PickUpAndHaul
             //credit to Dingo
             int c = MassUtility.CountToPickUpUntilOverEncumbered(pawn, thing);
 
+            Thing preExistingThing = pawn.Map.thingGrid.ThingAt(storeCell, thing.def);
+            if (preExistingThing != null)
+                c = thing.def.stackLimit - preExistingThing.stackCount;
+
             if (c == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
-            return new Job(PickUpAndHaulJobDefOf.HaulToInventory, thing)
+            return new Job(PickUpAndHaulJobDefOf.HaulToInventory, thing, storeCell)
             {
                 count = c
             };
