@@ -45,7 +45,7 @@ namespace PickUpAndHaul
                 {
                     if (ModCompatibilityCheck.AllowToolIsActive)
                     {
-                        harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), "JobOnThing"),
+                        harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), nameof(AllowTool.WorkGiver_HaulUrgently.JobOnThing)),
                             new HarmonyMethod(typeof(HarmonyPatches), nameof(AllowToolHaulUrgentlyJobOnThing_PreFix)), null, null);
                     }
                 }))();
@@ -66,7 +66,7 @@ namespace PickUpAndHaul
             }
             catch (TypeLoadException) { }
 
-            Log.Message("PickUpAndHaul v0.1.0.1 welcomes you to RimWorld with pointless logspam.");
+            Log.Message("PickUpAndHaul v0.1.0.2 welcomes you to RimWorld with pointless logspam.");
         }
 
         private static bool AllowToolHaulUrgentlyJobOnThing_PreFix(ref Job __result, Pawn pawn, Thing t, bool forced = false)
@@ -90,7 +90,7 @@ namespace PickUpAndHaul
                         return false;
                     }
 
-                    Job haul = new Job(PickUpAndHaulJobDefOf.HaulToInventory, t)
+                    Job haul = new Job(PickUpAndHaulJobDefOf.HaulToInventory, t, storeCell)
                     {
                         count = t.stackCount
                     };

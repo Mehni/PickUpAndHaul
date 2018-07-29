@@ -35,7 +35,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="AllowTool">
-      <HintPath>..\..\..\..\..\..\..\workshop\content\294100\761421485\Assemblies\AllowTool.dll</HintPath>
+      <HintPath>..\..\..\..\AllowTool 1.0\Assemblies\AllowTool.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
