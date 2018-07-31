@@ -101,7 +101,7 @@ namespace PickUpAndHaul
             return true;
         }
 
-        private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
+        private static bool Drop_Prefix(Pawn pawn, Thing thing)
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null) return true;
@@ -115,7 +115,7 @@ namespace PickUpAndHaul
             return true;
         }
 
-        private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, ref Thing item)
+        private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, Thing item)
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null) return;
@@ -153,12 +153,12 @@ namespace PickUpAndHaul
             //}
         }
 
-        public static void IdleJoy_Postfix(ref Pawn pawn)
+        public static void IdleJoy_Postfix(Pawn pawn)
         {
             PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true);
         }
 
-        public static void DropUnusedInventory_PostFix(ref Pawn pawn)
+        public static void DropUnusedInventory_PostFix(Pawn pawn)
         {
             PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn);
         }
