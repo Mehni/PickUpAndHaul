@@ -12,11 +12,9 @@ using Verse.AI;
 
 namespace PickUpAndHaul
 {
-
     [StaticConstructorOnStartup]
     static class HarmonyPatches
     {
-        
         static HarmonyPatches()
         {
             HarmonyInstance harmony = HarmonyInstance.Create("mehni.rimworld.pickupthatcan.main");
