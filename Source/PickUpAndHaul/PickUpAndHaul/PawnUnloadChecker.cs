@@ -13,7 +13,7 @@ namespace PickUpAndHaul
 
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
-            Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
+            Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
             if (itemsTakenToInventory == null) return;
@@ -23,7 +23,7 @@ namespace PickUpAndHaul
             if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike) return;
             if (carriedThing?.Count == 0 || pawn.inventory.innerContainer.Count == 0) return;
 
-            if (carriedThing.Count != 0)
+            if (carriedThing?.Count != 0)
             {
                 try
                 {
@@ -39,18 +39,18 @@ namespace PickUpAndHaul
 
             if (forced)
             {
-                if (job.TryMakePreToilReservations(pawn))
+                if (job.TryMakePreToilReservations(pawn, false))
                 {
-                    pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                    pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
                     return;
                 }
             }
 
             if (MassUtility.EncumbrancePercent(pawn) >= 0.90f || carriedThing.Count >= 1)
             {
-                if (job.TryMakePreToilReservations(pawn))
+                if (job.TryMakePreToilReservations(pawn, false))
                 {
-                    pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                    pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
                     return;
                 }
             }
@@ -64,7 +64,7 @@ namespace PickUpAndHaul
                     {
                         if (compRottable.TicksUntilRotAtCurrentTemp < 30000)
                         {
-                            pawn.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
+                            pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
                             return;
                         }
                     }

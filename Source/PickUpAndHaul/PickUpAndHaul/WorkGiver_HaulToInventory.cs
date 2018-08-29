@@ -12,7 +12,7 @@ namespace PickUpAndHaul
     public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
     {
 
-        public override bool ShouldSkip(Pawn pawn)
+        public override bool ShouldSkip(Pawn pawn, bool forced = false)
         {
             return base.ShouldSkip(pawn) || pawn.Faction != Faction.OfPlayer || (!pawn.RaceProps.Humanlike); //hospitality check + misc robots & animals
         }
@@ -31,12 +31,12 @@ namespace PickUpAndHaul
 
             if (!HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)) return null;
             
-            if (thing.IsForbidden(pawn) || StoreUtility.IsInValidBestStorage(thing)) return null;
+            if (thing.IsForbidden(pawn) || thing.IsInValidBestStorage()) return null;
 
             //bulky gear (power armor + minigun) so don't bother.
             if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return null;
 
-            StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(thing.Position, thing);
+            StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
             if (StoreUtility.TryFindBestBetterStoreCellFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true)) 
             {
                 //since we've gone through all the effort of getting the loc, might as well use it.
@@ -48,8 +48,7 @@ namespace PickUpAndHaul
                         List<Thing> thingList = storeCell.GetThingList(thing.Map);
                         for (int i = 0; i < thingList.Count; i++)
                         {
-                            Thing thingAtCell = thingList[i];
-                            if (thingAtCell.def == ThingDefOf.Hopper)
+                            if (thingList[i].def == ThingDefOf.Hopper)
                             return HaulAIUtility.HaulToStorageJob(pawn, thing);
                         }
                     }
@@ -61,7 +60,7 @@ namespace PickUpAndHaul
                 return null;
             }
 
-            if (MassUtility.EncumbrancePercent(pawn) >= 0.80f)
+            if (MassUtility.EncumbrancePercent(pawn) >= 0.90f)
             {
                 Job haul = HaulAIUtility.HaulToStorageJob(pawn, thing);
                 return haul;
@@ -70,9 +69,13 @@ namespace PickUpAndHaul
             //credit to Dingo
             int c = MassUtility.CountToPickUpUntilOverEncumbered(pawn, thing);
 
+            Thing preExistingThing = pawn.Map.thingGrid.ThingAt(storeCell, thing.def);
+            if (preExistingThing != null)
+                c = thing.def.stackLimit - preExistingThing.stackCount;
+
             if (c == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
-            return new Job(PickUpAndHaulJobDefOf.HaulToInventory, thing)
+            return new Job(PickUpAndHaulJobDefOf.HaulToInventory, thing, storeCell)
             {
                 count = c
             };
