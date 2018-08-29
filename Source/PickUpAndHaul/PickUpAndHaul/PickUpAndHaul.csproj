@@ -35,7 +35,7 @@
       <HintPath>..\..\..\..\..\..\..\..\..\..\Users\Maniak\Documents\RimWorld Mods\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="AllowTool">
-      <HintPath>..\..\..\..\AllowTool 1.0\Assemblies\AllowTool.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\workshop\content\294100\761421485\Assemblies\AllowTool.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
@@ -57,7 +57,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="WhileYoureUp">
-      <HintPath>..\..\..\..\..\..\..\workshop\content\294100\1161112205\Assemblies\WhileYoureUp.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\workshop\content\294100\1428216342\Assemblies\WhileYoureUp.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
