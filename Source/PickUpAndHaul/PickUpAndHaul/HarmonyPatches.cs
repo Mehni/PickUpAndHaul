@@ -65,7 +65,7 @@ namespace PickUpAndHaul
             catch (TypeLoadException) { }
 
             Log.Message("PickUpAndHaul v0.1.0.3 welcomes you to RimWorld with pointless logspam.");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
+            harmony.PatchAll();
         }
 
         private static bool AllowToolHaulUrgentlyJobOnThing_PreFix(ref Job __result, Pawn pawn, Thing t, bool forced = false)
