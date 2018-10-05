@@ -103,8 +103,8 @@ namespace PickUpAndHaul
                 && validator(t)
                 && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
 
-            
-            //Find what fits in inventory
+
+            //Find what fits in inventory, set nextThingLeftOverCount to be carried
             job.targetQueueA = new List<LocalTargetInfo>();
             Thing nextThing = thing; //initially thing just for Position
             int nextThingLeftOverCount = 0;
