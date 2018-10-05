@@ -137,7 +137,8 @@ namespace PickUpAndHaul
             }
             else
             {
-                float distanceToOthers = Math.Max(12f, (storeCell - thing.Position).LengthHorizontalSquared * (searchForOthersRangeFraction * searchForOthersRangeFraction));
+                float distanceToHaul = (storeCell - thing.Position).LengthHorizontal * searchForOthersRangeFraction;
+                float distanceToOthers = Math.Max(12f, distanceToHaul);
 
                 while (GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways),
                     PathEndMode.ClosestTouch, TraverseParms.For(pawn), distanceToOthers, validatorExtra)
