@@ -16,12 +16,17 @@ namespace PickUpAndHaul
             return this.pawn.Reserve(this.job.targetA, this.job) && pawn.Reserve(job.targetB, this.job);
         }
 
-        //reserve, goto, take, check for more. Branches off to "all over the place"
+        //get next, goto, take, check for more. Branches off to "all over the place"
         protected override IEnumerable<Toil> MakeNewToils()
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
             Toil wait = Toils_General.Wait(2);
+
+            yield return Toils_JobTransforms.MoveCurrentTargetIntoQueue(TargetIndex.A);
+            Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A);
+            yield return nextTarget;
+            yield return CheckForOverencumbered();//Probably redundant without CE checks
 
             Toil gotoThing = new Toil
             {
@@ -32,8 +37,6 @@ namespace PickUpAndHaul
                 defaultCompleteMode = ToilCompleteMode.PatherArrival
             };
             gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
-
-            Toil checkForOtherItemsToHaulToInventory = CheckForOtherItemsToHaulToInventory(gotoThing, TargetIndex.A);
             yield return gotoThing;
 
             Toil takeThing = new Toil
@@ -93,34 +96,37 @@ namespace PickUpAndHaul
                 }
             };
             yield return takeThing;
-            yield return checkForOtherItemsToHaulToInventory; //we end the job in there, so only one of the checks for duplicates gets called.
+            yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty<LocalTargetInfo>());
+
+            yield return new Toil()
+            {
+                initAction = () =>
+                {
+                    Pawn actor = pawn;
+                    Job curJob = actor.jobs.curJob;
+                    LocalTargetInfo storeCell = curJob.targetB;
+
+                    Job unloadJob = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
+                    if (unloadJob.TryMakePreToilReservations(actor, false))
+                    {
+                        actor.jobs.jobQueue.EnqueueFirst(unloadJob, new JobTag?(JobTag.Misc));
+                        this.EndJobWith(JobCondition.Succeeded);
+                    }
+                }
+            };
             yield return wait;
         }
-
-
-        //regular Toils_Haul.CheckForGetOpportunityDuplicate isn't going to work for our purposes, since we're not carrying anything. 
-        //Carrying something yields weird results with unspawning errors when transfering to inventory, so we copy-past-- I mean, implement our own.
-        public Toil CheckForOtherItemsToHaulToInventory(Toil getHaulTargetToil, TargetIndex haulableInd)
+        
+        public Toil CheckForOverencumbered()
         {
             Toil toil = new Toil();
             toil.initAction = delegate
             {
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
+                Thing nextThing = curJob.targetA.Thing;
                 LocalTargetInfo storeCell = curJob.targetB;
 
-                if (curJob.targetQueueA.NullOrEmpty())
-                {
-                    Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
-                    if (job.TryMakePreToilReservations(actor, false))
-                    {
-                        actor.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
-                        this.EndJobWith(JobCondition.Succeeded);
-                    }
-                    return;
-                }
-                LocalTargetInfo nextThing = curJob.targetQueueA.FirstOrDefault();
-                curJob.targetQueueA.RemoveAt(0);
                 //float usedBulkByPct = 1f;
                 //float usedWeightByPct = 1f;
 
@@ -139,22 +145,14 @@ namespace PickUpAndHaul
                 //catch (TypeLoadException) { }
 
 
-                if (MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/)
+                if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/))
                 {
-                    curJob.SetTarget(haulableInd, nextThing);
-                    actor.Reserve(storeCell, this.job);
-                    this.job.count = 99999; //done for "num", to solve scenarios like hauling 150 meat to single free spot near stove
-                    actor.jobs.curDriver.JumpToToil(getHaulTargetToil);
-                }
-                else
-                {
-                    Job haul = HaulAIUtility.HaulToStorageJob(actor, nextThing.Thing);
+                    Job haul = HaulAIUtility.HaulToStorageJob(actor, nextThing);
                     if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                     {
                         //note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
                         actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
                         this.EndJobWith(JobCondition.Succeeded);
-                        return;
                     }
                 }
             };
