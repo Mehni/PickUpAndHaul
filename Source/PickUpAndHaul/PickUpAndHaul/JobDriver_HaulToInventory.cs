@@ -2,27 +2,24 @@
 using System.Linq;
 using System.Collections.Generic;
 using RimWorld;
+using UnityEngine;
 using Verse;
 using Verse.AI;
-using UnityEngine;
 
 namespace PickUpAndHaul
 {
     public class JobDriver_HaulToInventory : JobDriver
     {
-
-
-        public override bool TryMakePreToilReservations()
+        public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             this.pawn.ReserveAsManyAsPossible(this.job.GetTargetQueue(TargetIndex.A), this.job, 1, -1, null);
-            return this.pawn.Reserve(this.job.targetA, this.job, 1, -1, null);
+            return this.pawn.Reserve(this.job.targetA, this.job) && pawn.Reserve(job.targetB, this.job);
         }
 
         //reserve, goto, take, check for more. Branches off to "all over the place"
         protected override IEnumerable<Toil> MakeNewToils()
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            HashSet<Thing> carriedThings = takenToInventory.GetHashSet();
 
             Toil wait = Toils_General.Wait(2);
 
@@ -32,7 +29,7 @@ namespace PickUpAndHaul
                 {
                     this.pawn.pather.StartPath(this.TargetThingA, PathEndMode.ClosestTouch);
                 },
-                defaultCompleteMode = ToilCompleteMode.PatherArrival,
+                defaultCompleteMode = ToilCompleteMode.PatherArrival
             };
             gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
 
@@ -48,7 +45,7 @@ namespace PickUpAndHaul
                     Toils_Haul.ErrorCheckForCarry(actor, thing);
 
                     //get max we can pick up
-                    int countToPickUp = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
+                    int countToPickUp = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing), job.count);
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
                     // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
@@ -59,7 +56,7 @@ namespace PickUpAndHaul
                             if (ModCompatibilityCheck.CombatExtendedIsActive)
                             {
                                 CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                ceCompInventory.CanFitInInventory(thing, out countToPickUp, false, false);
+                                ceCompInventory.CanFitInInventory(thing, out countToPickUp);
                             }
                         }))();
                     }
@@ -67,7 +64,7 @@ namespace PickUpAndHaul
 
                     if (countToPickUp > 0)
                     {
-                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(countToPickUp), true); 
+                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(countToPickUp), true);
                         takenToInventory.RegisterHauledItem(thing);
 
                         try
@@ -87,7 +84,7 @@ namespace PickUpAndHaul
                     if (thing.Spawned)
                     {
                         Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
-                        if (haul?.TryMakePreToilReservations(actor) ?? false)
+                        if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                         {
                             actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
                         }
@@ -110,11 +107,12 @@ namespace PickUpAndHaul
             {
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
+                LocalTargetInfo storeCell = curJob.targetB;
 
-                if(curJob.targetQueueA.NullOrEmpty())
+                if (curJob.targetQueueA.NullOrEmpty())
                 {
-                    Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory);
-                    if (job.TryMakePreToilReservations(actor))
+                    Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
+                    if (job.TryMakePreToilReservations(actor, false))
                     {
                         actor.jobs.jobQueue.EnqueueFirst(job, new JobTag?(JobTag.Misc));
                         this.EndJobWith(JobCondition.Succeeded);
@@ -123,36 +121,40 @@ namespace PickUpAndHaul
                 }
                 LocalTargetInfo nextThing = curJob.targetQueueA.FirstOrDefault();
                 curJob.targetQueueA.RemoveAt(0);
-                float usedBulkByPct = 1f;
-                float usedWeightByPct = 1f;
+                //float usedBulkByPct = 1f;
+                //float usedWeightByPct = 1f;
 
-                try
-                {
-                    ((Action)(() =>
-                    {
-                        if (ModCompatibilityCheck.CombatExtendedIsActive)
-                        {
-                            CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                            usedWeightByPct = ceCompInventory.currentWeight / ceCompInventory.capacityWeight;
-                            usedBulkByPct = ceCompInventory.currentBulk / ceCompInventory.capacityBulk;
-                        }
-                    }))();
-                }
-                catch (TypeLoadException) { }
+                //try
+                //{
+                //    ((Action)(() =>
+                //    {
+                //        if (ModCompatibilityCheck.CombatExtendedIsActive)
+                //        {
+                //            CompInventory ceCompInventory = actor.GetComp<CompInventory>();
+                //            usedWeightByPct = ceCompInventory.currentWeight / ceCompInventory.capacityWeight;
+                //            usedBulkByPct = ceCompInventory.currentBulk / ceCompInventory.capacityBulk;
+                //        }
+                //    }))();
+                //}
+                //catch (TypeLoadException) { }
 
 
-                if (MassUtility.EncumbrancePercent(actor) <= 0.9f || usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f)
+                if (MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/)
                 {
                     curJob.SetTarget(haulableInd, nextThing);
+                    actor.Reserve(storeCell, this.job);
+                    this.job.count = 99999; //done for "num", to solve scenarios like hauling 150 meat to single free spot near stove
                     actor.jobs.curDriver.JumpToToil(getHaulTargetToil);
                 }
                 else
                 {
                     Job haul = HaulAIUtility.HaulToStorageJob(actor, nextThing.Thing);
-                    if (haul?.TryMakePreToilReservations(actor) ?? false)
+                    if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                     {
-                        actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                        //note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
+                        actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
                         this.EndJobWith(JobCondition.Succeeded);
+                        return;
                     }
                 }
             };

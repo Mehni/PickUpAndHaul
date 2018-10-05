@@ -2,7 +2,7 @@
 <Patch>
 
 	<Operation Class="PatchOperationAdd">
-		<xpath>Defs/ThingDef [@Name ="BasePawn"]/comps</xpath>
+		<xpath>Defs/ThingDef[thingClass="Pawn"]/comps</xpath>
 		<value>
             <li><compClass>PickUpAndHaul.CompHauledToInventory</compClass></li>
 		</value>

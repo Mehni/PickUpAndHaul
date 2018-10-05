@@ -15,14 +15,14 @@ namespace PickUpAndHaul
         public override void ExposeData()
         {
             base.ExposeData();
-            Scribe_Values.Look<int>(ref this.countToDrop, "countToDrop", -1, false);
+            Scribe_Values.Look<int>(ref this.countToDrop, "countToDrop", -1);
         }
-
-        public override bool TryMakePreToilReservations()
+        
+        public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return true;
         }
-        
+
         /// <summary>
         /// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
         /// </summary>
@@ -46,7 +46,7 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                    ThingStackPart unloadableThing = FirstUnloadableThing(pawn);                    
+                    ThingCount unloadableThing = FirstUnloadableThing(pawn);
 
                     if (unloadableThing.Count == 0 && carriedThing.Count == 0)
                     {
@@ -55,10 +55,10 @@ namespace PickUpAndHaul
 
                     if (unloadableThing.Count != 0)
                     {
-                        StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
+                        //StoragePriority currentPriority = StoreUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
                         if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
                         {
-                            this.pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing thing, null);
+                            this.pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing thing);
                             this.EndJobWith(JobCondition.Succeeded);
                         }
                         else
@@ -72,7 +72,7 @@ namespace PickUpAndHaul
             };
             yield return findSpot;
 
-            yield return Toils_Reserve.Reserve(TargetIndex.B, 1, -1, null);
+            yield return Toils_Reserve.Reserve(TargetIndex.B);
 
             yield return new Toil
             {
@@ -85,15 +85,15 @@ namespace PickUpAndHaul
                         pawn.jobs.curDriver.JumpToToil(wait);
                         return;
                     }
-                    if (!this.pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStoreable)
+                    if (!this.pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
                     { 
-                        this.pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, this.countToDrop, out thing, null);
+                        this.pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, this.countToDrop, out thing);
                         this.EndJobWith(JobCondition.Succeeded);
                         carriedThing.Remove(thing);
                     }
                     else
                     {
-                        this.pawn.inventory.innerContainer.TryTransferToContainer(thing, this.pawn.carryTracker.innerContainer, this.countToDrop, out thing, true);
+                        this.pawn.inventory.innerContainer.TryTransferToContainer(thing, this.pawn.carryTracker.innerContainer, this.countToDrop, out thing);
                         this.job.count = this.countToDrop;
                         this.job.SetTarget(TargetIndex.A, thing);
                         carriedThing.Remove(thing);
@@ -136,7 +136,7 @@ namespace PickUpAndHaul
             yield return celebrate;
         }
 
-        static ThingStackPart FirstUnloadableThing(Pawn pawn)
+        static ThingCount FirstUnloadableThing(Pawn pawn)
         {
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThings = itemsTakenToInventory.GetHashSet();
@@ -147,7 +147,7 @@ namespace PickUpAndHaul
                 where carriedThings.Contains(t)
                 select t;
 
-            foreach (Thing thing in carriedThings.OrderBy(t => t.def.FirstThingCategory.index))
+            foreach (Thing thing in carriedThings.OrderBy(t => t.def.FirstThingCategory?.index))
             {
                 //merged partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
@@ -163,12 +163,12 @@ namespace PickUpAndHaul
 
                     foreach (Thing dirtyStraggler in dirtyStragglers)
                     {
-                        return new ThingStackPart(dirtyStraggler, dirtyStraggler.stackCount);
+                        return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
                     }
                 }
-                return new ThingStackPart(thing, thing.stackCount);
+                return new ThingCount(thing, thing.stackCount);
             }
-            return default(ThingStackPart);
+            return default(ThingCount);
         }
     }
 }

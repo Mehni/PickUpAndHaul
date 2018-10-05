@@ -12,11 +12,9 @@ using Verse.AI;
 
 namespace PickUpAndHaul
 {
-
     [StaticConstructorOnStartup]
     static class HarmonyPatches
     {
-        
         static HarmonyPatches()
         {
             HarmonyInstance harmony = HarmonyInstance.Create("mehni.rimworld.pickupthatcan.main");
@@ -38,14 +36,14 @@ namespace PickUpAndHaul
 
             harmony.Patch(AccessTools.Method(typeof(JobGiver_Idle), "TryGiveJob"), null,
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
-            
+
             try
             {
                 ((Action)(() =>
                 {
                     if (ModCompatibilityCheck.AllowToolIsActive)
                     {
-                        harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), "JobOnThing"),
+                        harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), nameof(AllowTool.WorkGiver_HaulUrgently.JobOnThing)),
                             new HarmonyMethod(typeof(HarmonyPatches), nameof(AllowToolHaulUrgentlyJobOnThing_PreFix)), null, null);
                     }
                 }))();
@@ -66,11 +64,9 @@ namespace PickUpAndHaul
             }
             catch (TypeLoadException) { }
 
+            Log.Message("PickUpAndHaul v0.1.0.3 welcomes you to RimWorld with pointless logspam.");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-            Log.Message("PickUpAndHaul v0.18.2.0 welcomes you to RimWorld with pointless logspam.");
         }
-
 
         private static bool AllowToolHaulUrgentlyJobOnThing_PreFix(ref Job __result, Pawn pawn, Thing t, bool forced = false)
         {
@@ -86,7 +82,7 @@ namespace PickUpAndHaul
                     && !(t.def.defName.Contains("Chunk")) //most of the time we don't have space for it
                     )
                 {
-                    StoragePriority currentPriority = HaulAIUtility.StoragePriorityAtFor(t.Position, t);
+                    StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(t);
                     if (!StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true))
                     {
                         JobFailReason.Is("NoEmptyPlaceLower".Translate());
@@ -103,7 +99,7 @@ namespace PickUpAndHaul
             return true;
         }
 
-        private static bool Drop_Prefix(ref Pawn pawn, ref Thing thing)
+        private static bool Drop_Prefix(Pawn pawn, Thing thing)
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null) return true;
@@ -117,7 +113,7 @@ namespace PickUpAndHaul
             return true;
         }
 
-        private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, ref Thing item)
+        private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, Thing item)
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null) return;
@@ -155,12 +151,12 @@ namespace PickUpAndHaul
             //}
         }
 
-        public static void IdleJoy_Postfix(ref Pawn pawn)
+        public static void IdleJoy_Postfix(Pawn pawn)
         {
             PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true);
         }
 
-        public static void DropUnusedInventory_PostFix(ref Pawn pawn)
+        public static void DropUnusedInventory_PostFix(Pawn pawn)
         {
             PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn);
         }
@@ -203,8 +199,7 @@ namespace PickUpAndHaul
         {
             if (__result == null || __result.def != JobDefOf.HaulToCell) return;
 
-            WorkGiver_HaulToInventory worker = pawn.workSettings.WorkGiversInOrderNormal.FirstOrDefault(wg => wg is WorkGiver_HaulToInventory) as WorkGiver_HaulToInventory;
-            if (worker == null) return;
+            if (!(pawn.workSettings.WorkGiversInOrderNormal.FirstOrDefault(wg => wg is WorkGiver_HaulToInventory) is WorkGiver_HaulToInventory worker)) return;
 
             Job myJob = worker.JobOnThing(pawn, __result.targetA.Thing, false);
             if (myJob == null) return;
