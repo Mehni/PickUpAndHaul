@@ -12,8 +12,10 @@ namespace PickUpAndHaul
     {
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            this.pawn.ReserveAsManyAsPossible(this.job.GetTargetQueue(TargetIndex.A), this.job, 1, -1, null);
-            return this.pawn.Reserve(this.job.targetA, this.job) && pawn.Reserve(job.targetB, this.job);
+            Log.Message($"{pawn} hauling {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
+            this.pawn.ReserveAsManyAsPossible(this.job.targetQueueA, this.job);
+            this.pawn.ReserveAsManyAsPossible(this.job.targetQueueB, this.job);
+            return this.pawn.Reserve(this.job.targetQueueA[0], this.job) && pawn.Reserve(job.targetB, this.job);
         }
 
         //get next, goto, take, check for more. Branches off to "all over the place"
@@ -22,9 +24,8 @@ namespace PickUpAndHaul
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
             Toil wait = Toils_General.Wait(2);
-
-            yield return Toils_JobTransforms.MoveCurrentTargetIntoQueue(TargetIndex.A);
-            Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A);
+            
+            Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
             yield return nextTarget;
             yield return CheckForOverencumbered();//Probably redundant without CE checks
 
@@ -48,7 +49,8 @@ namespace PickUpAndHaul
                     Toils_Haul.ErrorCheckForCarry(actor, thing);
 
                     //get max we can pick up
-                    int countToPickUp = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing), job.count);
+                    int countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
+                    Log.Message($"{actor} can hauling to inventory {thing}:{countToPickUp}");
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
                     // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
@@ -84,6 +86,7 @@ namespace PickUpAndHaul
                         catch (TypeLoadException) { }
                     }
                     //thing still remains, so queue up hauling if we can + end the current job (smooth/instant transition)
+                    //This will technically release the reservations in the queue, but what can you do
                     if (thing.Spawned)
                     {
                         Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
@@ -125,7 +128,6 @@ namespace PickUpAndHaul
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
                 Thing nextThing = curJob.targetA.Thing;
-                LocalTargetInfo storeCell = curJob.targetB;
 
                 //float usedBulkByPct = 1f;
                 //float usedWeightByPct = 1f;

@@ -17,7 +17,7 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\Assemblies\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -68,6 +68,7 @@
     <Compile Include="JobDriver_UnloadYourHauledInventory.cs" />
     <Compile Include="ModCompatibilityCheck.cs" />
     <Compile Include="PawnUnloadChecker.cs" />
+    <Compile Include="StoreUtilityCellSkipper.cs" />
     <Compile Include="WorkGiver_HaulToInventory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

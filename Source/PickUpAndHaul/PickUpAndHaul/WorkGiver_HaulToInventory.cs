@@ -8,11 +8,17 @@ using Verse.AI;
 
 namespace PickUpAndHaul
 {
-    
     public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
     {
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void LogMessage(string x)
+        {
+            Log.Message(x);
+        }
 
         //Thanks to AlexTD for the more dynamic search range
+        //And queueing
+        //And optimizing
         float searchForOthersRangeFraction = 0.5f;
 
         public override bool ShouldSkip(Pawn pawn, bool forced = false)
@@ -26,7 +32,6 @@ namespace PickUpAndHaul
 
         public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
-
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null) return null;
 
@@ -75,19 +80,14 @@ namespace PickUpAndHaul
             }
 
             //credit to Dingo
-            int c = MassUtility.CountToPickUpUntilOverEncumbered(pawn, thing);
+            int capacityStoreCell = CapacityAt(thing.def, storeCell, pawn.Map);
 
-            Thing preExistingThing = pawn.Map.thingGrid.ThingAt(storeCell, thing.def);
-            if (preExistingThing != null)
-                c = thing.def.stackLimit - preExistingThing.stackCount;
+            if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
-            if (c == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
-
-            Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, thing, storeCell)
-            {
-                count = c
-            };
-
+            Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
+            LogMessage($"-------------------------------------------------------------------");
+            LogMessage($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
+            LogMessage($"{pawn} job is haulin {thing} to {storeCell}:{capacityStoreCell}");
 
             //Find extra things than can be hauled to inventory, queue to reserve them
             DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
@@ -97,20 +97,18 @@ namespace PickUpAndHaul
                 isUrgent = true;
 
             Predicate<Thing> validatorExtra = (Thing t) =>
-                t != thing
-                && !job.targetQueueA.Contains(t)
-                && (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == HaulUrgentlyDesignation)
-                && validator(t)
-                && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
+                !job.targetQueueA.Contains(t) &&
+                (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == HaulUrgentlyDesignation) &&
+                validator(t) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
 
 
-            //Find what fits in inventory, set nextThingLeftOverCount to be carried
-            job.targetQueueA = new List<LocalTargetInfo>();
-            Thing nextThing = thing; //initially thing just for Position
+            //Find what fits in inventory, set nextThingLeftOverCount to be 
             int nextThingLeftOverCount = 0;
-
             float encumberance = MassUtility.EncumbrancePercent(pawn);
-            encumberance += AddedEnumberance(pawn, thing);
+            job.targetQueueA = new List<LocalTargetInfo>(); //more things
+            job.targetQueueB = new List<LocalTargetInfo>(); //more storage; keep in mind the job doesn't use it, but reserve it so you don't over-haul
+            job.countQueue = new List<int>();//thing counts
+
 
             //TODO check CE along with encumberance
             //float usedBulkByPct = 1f;
@@ -130,59 +128,122 @@ namespace PickUpAndHaul
             //}
             //catch (TypeLoadException) { }
 
-            if (encumberance > 1f)// || usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f))
-            {
-                //first stack will be split to inventory AND carried
-                nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
-            }
-            else
-            {
-                float distanceToHaul = (storeCell - thing.Position).LengthHorizontal * searchForOthersRangeFraction;
-                float distanceToOthers = Math.Max(12f, distanceToHaul);
+            float distanceToHaul = (storeCell - thing.Position).LengthHorizontal * searchForOthersRangeFraction;
+            float distanceToSearchMore = Math.Max(12f, distanceToHaul);
 
-                while (GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways),
-                    PathEndMode.ClosestTouch, TraverseParms.For(pawn), distanceToOthers, validatorExtra)
-                    is Thing found)
+            Thing nextThing = thing;
+            do
+            {
+                if (AllocateThingAtCell(ref capacityStoreCell, out int stackCount, pawn, nextThing, job, ref storeCell))
                 {
-                    nextThing = found;
-                    job.targetQueueA.Add(nextThing);
-
-                    encumberance += AddedEnumberance(pawn, nextThing);
-                    //TODO: CE also
-
-                    if (encumberance > 1)// || usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f))
-                    {
-                        //can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
-                        nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
-                        break;
-                    }
+                    StoreUtilityCellSkipper.skipCells = null;
+                    return job;
                 }
+
+                encumberance += AddedEnumberance(pawn, nextThing);
+
+                if (encumberance > 1)// || usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f))//TODO: CE also
+                {
+                    //can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
+                    nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
+                    LogMessage($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+                    break;
+                }
+            }
+            while ((nextThing = GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways),
+                PathEndMode.ClosestTouch, TraverseParms.For(pawn), distanceToSearchMore, validatorExtra))
+                is Thing);
+
+            if (nextThing == null)
+            {
+                StoreUtilityCellSkipper.skipCells = null;
+                return job;
             }
 
             //Find what can be carried
+            //this doesn't actually get pickupandhauled, but will hold the reservation so others don't grab what this pawn can carry
             ThingDef carryDef = nextThing.def;
             Predicate<Thing> validatorCarry = (Thing t) =>
                  t.def == carryDef
                  && validatorExtra(t);
+            LogMessage($"Looking for more {carryDef}");
 
             int carryCapacity = pawn.carryTracker.MaxStackSpaceEver(carryDef) - nextThingLeftOverCount;
 
-            while (GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways),
-                PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, validatorCarry)    //8f hardcoded in CheckForGetOpportunityDuplicate
-                is Thing found)
+            while ((nextThing = GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways),
+                PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, validatorCarry))    //8f hardcoded in CheckForGetOpportunityDuplicate
+                is Thing)
             {
-                nextThing = found;
-
                 carryCapacity -= nextThing.stackCount;
 
-                if (carryCapacity < 0)
+                if (AllocateThingAtCell(ref capacityStoreCell, out int stackCount, pawn, nextThing, job, ref storeCell))
                     break;
 
-                //Only reserve stack if you can carry entire stack
-                job.targetQueueA.Add(nextThing);
+                if (carryCapacity <= 0)
+                {
+                    int lastCount = job.countQueue.Pop() + carryCapacity;
+                    job.countQueue.Add(lastCount);
+                    Log.Message($"Nevermind, last count is {lastCount}");
+                    break;
+                }
             }
 
+            StoreUtilityCellSkipper.skipCells = null;
             return job;
+        }
+
+        public static int CapacityAt(ThingDef def, IntVec3 storeCell, Map map)
+        {
+            int capacity = def.stackLimit;
+
+            Thing preExistingThing = map.thingGrid.ThingAt(storeCell, def);
+            if (preExistingThing != null)
+                capacity = def.stackLimit - preExistingThing.stackCount;
+
+            return capacity;
+        }
+
+        public static bool AllocateThingAtCell(ref int capacityStoreCell, out int stackCount, Pawn pawn, Thing nextThing, Job job, ref IntVec3 storeCell)
+        {
+            job.targetQueueA.Add(nextThing);
+            stackCount = nextThing.stackCount;
+            capacityStoreCell -= stackCount;
+            LogMessage($"{pawn} allocating {nextThing}:{stackCount}, now {storeCell}:{capacityStoreCell}");
+
+            bool searchDone = false;
+
+            while (capacityStoreCell <= 0)
+            {
+                int capacityOver = -capacityStoreCell;
+                LogMessage($"{pawn} overdone {storeCell} by {capacityOver}");
+
+                if(StoreUtilityCellSkipper.skipCells == null)
+                    StoreUtilityCellSkipper.skipCells = new HashSet<IntVec3>();
+                StoreUtilityCellSkipper.skipCells.Add(storeCell);
+
+                StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);//How necessary is this?
+                if (StoreUtility.TryFindBestBetterStoreCellFor(nextThing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell, false))
+                {
+                    storeCell = nextStoreCell;
+                    job.targetQueueB.Add(storeCell);
+
+                    capacityStoreCell = CapacityAt(nextThing.def, storeCell, pawn.Map);
+                    capacityStoreCell -= capacityOver;
+
+                    LogMessage($"New cell {storeCell}:{capacityStoreCell}, allocated extra {capacityOver}");
+                }
+                else
+                {
+                    stackCount -= capacityOver;
+                    LogMessage($"Nowhere else to store, job is going, {nextThing}:{stackCount}");
+                    StoreUtilityCellSkipper.skipCells = null;
+                    searchDone = true;//nowhere else to hold it, so job is ready
+                    break;
+                }
+            }
+            job.countQueue.Add(stackCount);
+            LogMessage($"{nextThing}:{stackCount} allocated, now using {storeCell}:{capacityStoreCell}");
+            return searchDone;
         }
 
         public static float AddedEnumberance(Pawn pawn, Thing thing)
