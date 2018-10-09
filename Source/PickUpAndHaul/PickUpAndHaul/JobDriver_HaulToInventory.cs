@@ -70,8 +70,9 @@ namespace PickUpAndHaul
 
                     if (countToPickUp > 0)
                     {
-                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(countToPickUp), true);
-                        takenToInventory.RegisterHauledItem(thing);
+                        Thing splitThing = thing.SplitOff(countToPickUp);
+                        actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, true);
+                        takenToInventory.RegisterHauledItem(splitThing);
 
                         try
                         {
