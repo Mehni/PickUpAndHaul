@@ -257,8 +257,12 @@ namespace PickUpAndHaul
             {
                 int capacityOver = -storeCellCapacity[storeCell].capacity;
                 storeCellCapacity.Remove(storeCell);
+
                 Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
+                if (capacityOver == 0)
+                    break;  //don't find new cell, might not have more of this thing to haul
+                
                 StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
                 if (TryFindBestBetterStoreCellFor(nextThing, pawn, map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
                 {
@@ -274,12 +278,12 @@ namespace PickUpAndHaul
                 {
                     count -= capacityOver;
                     job.countQueue.Add(count);
-                    Log.Message($"Nowhere else to store, job is going, {nextThing}:{count}");
+                    Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
                     return false;
                 }
             }
             job.countQueue.Add(count);
-            Log.Message($"{nextThing}:{count} allocated, now using {storeCell}:{storeCellCapacity[storeCell].capacity}");
+            Log.Message($"{nextThing}:{count} allocated");
             return true;
         }
 
