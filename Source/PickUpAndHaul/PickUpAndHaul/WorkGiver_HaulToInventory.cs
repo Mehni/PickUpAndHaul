@@ -135,6 +135,7 @@ namespace PickUpAndHaul
                 .Where(validatorExtra).ToList();
             
             Thing nextThing = thing;
+            Thing lastThing = thing;
 
             Dictionary<IntVec3, CellAllocation> storeCellCapacity = new Dictionary<IntVec3, CellAllocation>();
             storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacityStoreCell);
@@ -145,6 +146,7 @@ namespace PickUpAndHaul
                 haulables.Remove(nextThing);
                 if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
                 {
+                    lastThing = nextThing;
                     encumberance += AddedEnumberance(pawn, nextThing);
 
                     if (encumberance > 1)// || usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f))//TODO: CE also
@@ -156,7 +158,7 @@ namespace PickUpAndHaul
                     }
                 }
             }
-            while ((nextThing = GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForUndefined(),
+            while ((nextThing = GenClosest.ClosestThingReachable(lastThing.Position, thing.Map, ThingRequest.ForUndefined(),
                 PathEndMode.ClosestTouch, TraverseParms.For(pawn), distanceToSearchMore, null, haulables))
                 is Thing);
 
