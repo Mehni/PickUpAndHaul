@@ -123,9 +123,14 @@ namespace PickUpAndHaul
             float distanceToSearchMore = Math.Max(12f, distanceToHaul);
 
             Thing nextThing = thing;
+
+            Dictionary<IntVec3, CellAllocation> storeCellCapacity = new Dictionary<IntVec3, CellAllocation>();
+            storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacityStoreCell);
+            skipCells = new HashSet<IntVec3>() { storeCell };
+
             do
             {
-                if (AllocateThingAtCell(ref capacityStoreCell, out int stackCount, pawn, nextThing, job, ref storeCell))
+                if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
                 {
                     skipCells = null;
                     return job;
@@ -167,7 +172,7 @@ namespace PickUpAndHaul
             {
                 carryCapacity -= nextThing.stackCount;
 
-                if (AllocateThingAtCell(ref capacityStoreCell, out int stackCount, pawn, nextThing, job, ref storeCell))
+                if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
                     break;
 
                 if (carryCapacity <= 0)
@@ -183,6 +188,18 @@ namespace PickUpAndHaul
             return job;
         }
 
+        public class CellAllocation
+        {
+            public Thing allocated;
+            public int capacity;
+
+            public CellAllocation(Thing a, int c)
+            {
+                allocated = a;
+                capacity = c;
+            }
+        }
+
         public static int CapacityAt(ThingDef def, IntVec3 storeCell, Map map)
         {
             int capacity = def.stackLimit;
@@ -194,46 +211,68 @@ namespace PickUpAndHaul
             return capacity;
         }
 
-        public static bool AllocateThingAtCell(ref int capacityStoreCell, out int stackCount, Pawn pawn, Thing nextThing, Job job, ref IntVec3 storeCell)
+        public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
         {
-            job.targetQueueA.Add(nextThing);
-            stackCount = nextThing.stackCount;
-            capacityStoreCell -= stackCount;
-            Log.Message($"{pawn} allocating {nextThing}:{stackCount}, now {storeCell}:{capacityStoreCell}");
+            Map map = pawn.Map;
+            KeyValuePair<IntVec3, CellAllocation> allocation = storeCellCapacity.FirstOrDefault(kvp => 
+                kvp.Key.GetSlotGroup(map).parent.Accepts(nextThing) && 
+                kvp.Value.allocated.CanStackWith(nextThing));
+            IntVec3 storeCell = allocation.Key;
 
-            bool searchDone = false;
-
-            while (capacityStoreCell <= 0)
+            //Can't stack with allocated cells, find a new cell:
+            if (storeCell == default(IntVec3))
             {
-                int capacityOver = -capacityStoreCell;
-                Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
-
-                if (skipCells == null)
-                    skipCells = new HashSet<IntVec3>();
-                skipCells.Add(storeCell);
-
                 StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-                if (TryFindBestBetterStoreCellFor(nextThing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
+                if (TryFindBestBetterStoreCellFor(nextThing, pawn, map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
                 {
                     storeCell = nextStoreCell;
                     job.targetQueueB.Add(storeCell);
 
-                    capacityStoreCell = CapacityAt(nextThing.def, storeCell, pawn.Map);
-                    capacityStoreCell -= capacityOver;
+                    storeCellCapacity[storeCell] = new CellAllocation(nextThing, CapacityAt(nextThing.def, storeCell, map));
 
-                    Log.Message($"New cell {storeCell}:{capacityStoreCell}, allocated extra {capacityOver}");
+                    Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
                 }
                 else
                 {
-                    stackCount -= capacityOver;
-                    Log.Message($"Nowhere else to store, job is going, {nextThing}:{stackCount}");
-                    searchDone = true;//nowhere else to hold it, so job is ready
-                    break;
+                    Log.Message($"{nextThing} can't stack with allocated cells");
+                    return true;
                 }
             }
-            job.countQueue.Add(stackCount);
-            Log.Message($"{nextThing}:{stackCount} allocated, now using {storeCell}:{capacityStoreCell}");
-            return searchDone;
+
+            job.targetQueueA.Add(nextThing);
+            int count = nextThing.stackCount;
+            storeCellCapacity[storeCell].capacity -= count;
+            Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
+            
+
+            while (storeCellCapacity[storeCell].capacity <= 0)
+            {
+                int capacityOver = -storeCellCapacity[storeCell].capacity;
+                storeCellCapacity.Remove(storeCell);
+                Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
+
+                StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
+                if (TryFindBestBetterStoreCellFor(nextThing, pawn, map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
+                {
+                    storeCell = nextStoreCell;
+                    job.targetQueueB.Add(storeCell);
+
+                    int capacity = CapacityAt(nextThing.def, storeCell, map) - capacityOver;
+                    storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacity);
+                    
+                    Log.Message($"New cell {storeCell}:{capacity}, allocated extra {capacityOver}");
+                }
+                else
+                {
+                    count -= capacityOver;
+                    job.countQueue.Add(count);
+                    Log.Message($"Nowhere else to store, job is going, {nextThing}:{count}");
+                    return true;//nowhere else to hold it, so job is ready
+                }
+            }
+            job.countQueue.Add(count);
+            Log.Message($"{nextThing}:{count} allocated, now using {storeCell}:{storeCellCapacity[storeCell].capacity}");
+            return false;
         }
 
         public static HashSet<IntVec3> skipCells;
@@ -246,6 +285,9 @@ namespace PickUpAndHaul
                     && cell != default(IntVec3))
                 {
                     foundCell = cell;
+                    
+                    skipCells.Add(cell);
+
                     return true;
                 }
             }
