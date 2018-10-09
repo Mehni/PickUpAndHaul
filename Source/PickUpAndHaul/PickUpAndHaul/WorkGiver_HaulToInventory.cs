@@ -20,6 +20,24 @@ namespace PickUpAndHaul
             return base.ShouldSkip(pawn) || pawn.Faction != Faction.OfPlayer || (!pawn.RaceProps.Humanlike) || pawn.TryGetComp<CompHauledToInventory>() == null; //hospitality check + misc robots & animals
         }
 
+        public static bool GoodThingToHaul(Thing t, Pawn pawn) => t.Spawned
+                && !t.IsInValidBestStorage()
+                && !t.IsForbidden(pawn)
+                && !(t is Corpse)
+                && pawn.CanReserve(t);
+
+        public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced)
+        {
+            //bulky gear (power armor + minigun) so don't bother.
+            if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return false;
+            
+            if (!GoodThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+                return false;
+
+            StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
+            return StoreUtility.TryFindBestBetterStoreCellFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true);
+        }
+
         //pick up stuff until you can't anymore,
         //while you're up and about, pick up something and haul it
         //before you go out, empty your pockets
@@ -28,17 +46,8 @@ namespace PickUpAndHaul
         {
             //bulky gear (power armor + minigun) so don't bother.
             if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return null;
-
-            Predicate<Thing> validator = (Thing t) => t.Spawned
-                && !t.IsInValidBestStorage()
-                && !t.IsForbidden(pawn)
-                && !(t is Corpse)
-                && pawn.CanReserve(t);
-
-            Predicate<Thing> validatorFirst = (Thing t) =>
-                validator(t) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, forced);
-
-            if (!validatorFirst(thing)) return null;
+            
+            if (!GoodThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)) return null;
 
             StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
             if (StoreUtility.TryFindBestBetterStoreCellFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true))
@@ -90,7 +99,7 @@ namespace PickUpAndHaul
             Predicate<Thing> validatorExtra = (Thing t) =>
                 !job.targetQueueA.Contains(t) &&
                 (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == HaulUrgentlyDesignation) &&
-                validator(t) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
+                GoodThingToHaul(t, pawn) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
 
 
             //Find what fits in inventory, set nextThingLeftOverCount to be 
