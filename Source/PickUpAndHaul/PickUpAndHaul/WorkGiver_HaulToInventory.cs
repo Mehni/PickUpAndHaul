@@ -17,7 +17,7 @@ namespace PickUpAndHaul
 
         public override bool ShouldSkip(Pawn pawn, bool forced = false)
         {
-            return base.ShouldSkip(pawn) || pawn.Faction != Faction.OfPlayer || (!pawn.RaceProps.Humanlike); //hospitality check + misc robots & animals
+            return base.ShouldSkip(pawn) || pawn.Faction != Faction.OfPlayer || (!pawn.RaceProps.Humanlike) || pawn.TryGetComp<CompHauledToInventory>() == null; //hospitality check + misc robots & animals
         }
 
         //pick up stuff until you can't anymore,
@@ -26,9 +26,6 @@ namespace PickUpAndHaul
 
         public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
-            CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            if (takenToInventory == null) return null;
-
             //bulky gear (power armor + minigun) so don't bother.
             if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return null;
 
