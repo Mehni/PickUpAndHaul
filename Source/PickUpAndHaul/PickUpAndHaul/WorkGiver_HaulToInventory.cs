@@ -127,7 +127,7 @@ namespace PickUpAndHaul
             {
                 if (AllocateThingAtCell(ref capacityStoreCell, out int stackCount, pawn, nextThing, job, ref storeCell))
                 {
-                    StoreUtilityCellSkipper.skipCells = null;
+                    skipCells = null;
                     return job;
                 }
 
@@ -147,7 +147,7 @@ namespace PickUpAndHaul
 
             if (nextThing == null)
             {
-                StoreUtilityCellSkipper.skipCells = null;
+                skipCells = null;
                 return job;
             }
 
@@ -179,7 +179,7 @@ namespace PickUpAndHaul
                 }
             }
 
-            StoreUtilityCellSkipper.skipCells = null;
+            skipCells = null;
             return job;
         }
 
@@ -208,12 +208,12 @@ namespace PickUpAndHaul
                 int capacityOver = -capacityStoreCell;
                 Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
-                if(StoreUtilityCellSkipper.skipCells == null)
-                    StoreUtilityCellSkipper.skipCells = new HashSet<IntVec3>();
-                StoreUtilityCellSkipper.skipCells.Add(storeCell);
+                if (skipCells == null)
+                    skipCells = new HashSet<IntVec3>();
+                skipCells.Add(storeCell);
 
-                StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);//How necessary is this?
-                if (StoreUtility.TryFindBestBetterStoreCellFor(nextThing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell, false))
+                StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
+                if (TryFindBestBetterStoreCellFor(nextThing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
                 {
                     storeCell = nextStoreCell;
                     job.targetQueueB.Add(storeCell);
@@ -227,7 +227,6 @@ namespace PickUpAndHaul
                 {
                     stackCount -= capacityOver;
                     Log.Message($"Nowhere else to store, job is going, {nextThing}:{stackCount}");
-                    StoreUtilityCellSkipper.skipCells = null;
                     searchDone = true;//nowhere else to hold it, so job is ready
                     break;
                 }
@@ -237,6 +236,23 @@ namespace PickUpAndHaul
             return searchDone;
         }
 
+        public static HashSet<IntVec3> skipCells;
+        public static bool TryFindBestBetterStoreCellFor(Thing thing, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell)
+        {
+            foreach (SlotGroup slotGroup in map.haulDestinationManager.AllGroupsListInPriorityOrder
+                .Where(s => s.Settings.Priority > currentPriority && s.parent.Accepts(thing)))
+            {
+                if (slotGroup.CellsList.Except(skipCells).FirstOrDefault(c => StoreUtility.IsGoodStoreCell(c, map, thing, carrier, faction)) is IntVec3 cell
+                    && cell != default(IntVec3))
+                {
+                    foundCell = cell;
+                    return true;
+                }
+            }
+            foundCell = IntVec3.Invalid;
+            return false;
+        }
+
         public static float AddedEnumberance(Pawn pawn, Thing thing)
         {
             return thing.stackCount * thing.GetStatValue(StatDefOf.Mass, true) / MassUtility.Capacity(pawn);
@@ -244,7 +260,8 @@ namespace PickUpAndHaul
 
         public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance)
         {
-            return (int)Math.Ceiling((encumberance-1) *  MassUtility.Capacity(pawn) / thing.GetStatValue(StatDefOf.Mass, true));
+            return (int)Math.Ceiling((encumberance - 1) * MassUtility.Capacity(pawn) / thing.GetStatValue(StatDefOf.Mass, true));
         }
+
     }
 }
