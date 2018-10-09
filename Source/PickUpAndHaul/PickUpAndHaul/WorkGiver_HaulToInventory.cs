@@ -10,12 +10,6 @@ namespace PickUpAndHaul
 {
     public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
     {
-        [System.Diagnostics.Conditional("DEBUG")]
-        public static void LogMessage(string x)
-        {
-            Log.Message(x);
-        }
-
         //Thanks to AlexTD for the more dynamic search range
         //And queueing
         //And optimizing
@@ -85,9 +79,9 @@ namespace PickUpAndHaul
             if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
-            LogMessage($"-------------------------------------------------------------------");
-            LogMessage($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
-            LogMessage($"{pawn} job is haulin {thing} to {storeCell}:{capacityStoreCell}");
+            Log.Message($"-------------------------------------------------------------------");
+            Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
+            Log.Message($"{pawn} job is haulin {thing} to {storeCell}:{capacityStoreCell}");
 
             //Find extra things than can be hauled to inventory, queue to reserve them
             DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
@@ -146,7 +140,7 @@ namespace PickUpAndHaul
                 {
                     //can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
                     nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
-                    LogMessage($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+                    Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
                     break;
                 }
             }
@@ -166,7 +160,7 @@ namespace PickUpAndHaul
             Predicate<Thing> validatorCarry = (Thing t) =>
                  t.def == carryDef
                  && validatorExtra(t);
-            LogMessage($"Looking for more {carryDef}");
+            Log.Message($"Looking for more {carryDef}");
 
             int carryCapacity = pawn.carryTracker.MaxStackSpaceEver(carryDef) - nextThingLeftOverCount;
 
@@ -208,14 +202,14 @@ namespace PickUpAndHaul
             job.targetQueueA.Add(nextThing);
             stackCount = nextThing.stackCount;
             capacityStoreCell -= stackCount;
-            LogMessage($"{pawn} allocating {nextThing}:{stackCount}, now {storeCell}:{capacityStoreCell}");
+            Log.Message($"{pawn} allocating {nextThing}:{stackCount}, now {storeCell}:{capacityStoreCell}");
 
             bool searchDone = false;
 
             while (capacityStoreCell <= 0)
             {
                 int capacityOver = -capacityStoreCell;
-                LogMessage($"{pawn} overdone {storeCell} by {capacityOver}");
+                Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
                 if(StoreUtilityCellSkipper.skipCells == null)
                     StoreUtilityCellSkipper.skipCells = new HashSet<IntVec3>();
@@ -230,19 +224,19 @@ namespace PickUpAndHaul
                     capacityStoreCell = CapacityAt(nextThing.def, storeCell, pawn.Map);
                     capacityStoreCell -= capacityOver;
 
-                    LogMessage($"New cell {storeCell}:{capacityStoreCell}, allocated extra {capacityOver}");
+                    Log.Message($"New cell {storeCell}:{capacityStoreCell}, allocated extra {capacityOver}");
                 }
                 else
                 {
                     stackCount -= capacityOver;
-                    LogMessage($"Nowhere else to store, job is going, {nextThing}:{stackCount}");
+                    Log.Message($"Nowhere else to store, job is going, {nextThing}:{stackCount}");
                     StoreUtilityCellSkipper.skipCells = null;
                     searchDone = true;//nowhere else to hold it, so job is ready
                     break;
                 }
             }
             job.countQueue.Add(stackCount);
-            LogMessage($"{nextThing}:{stackCount} allocated, now using {storeCell}:{capacityStoreCell}");
+            Log.Message($"{nextThing}:{stackCount} allocated, now using {storeCell}:{capacityStoreCell}");
             return searchDone;
         }
 

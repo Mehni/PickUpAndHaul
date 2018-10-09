@@ -51,7 +51,7 @@ namespace PickUpAndHaul
 
                     //get max we can pick up
                     int countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
-                    Log.Message($"{actor} can hauling to inventory {thing}:{countToPickUp}");
+                    Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
                     // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
