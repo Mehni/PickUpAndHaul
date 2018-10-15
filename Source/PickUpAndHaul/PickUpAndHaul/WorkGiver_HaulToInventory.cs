@@ -171,9 +171,15 @@ namespace PickUpAndHaul
             //Find what can be carried
             //this doesn't actually get pickupandhauled, but will hold the reservation so others don't grab what this pawn can carry
             haulables.RemoveAll(t => !t.CanStackWith(nextThing));
-            Log.Message($"Looking for more like {nextThing}");
 
             int carryCapacity = pawn.carryTracker.MaxStackSpaceEver(nextThing.def) - nextThingLeftOverCount;
+            if (carryCapacity == 0)
+            {
+                Log.Message("Can't carry more, nevermind!");
+                skipCells = null;
+                return job;
+            }
+            Log.Message($"Looking for more like {nextThing}");
 
             while ((nextThing = GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForUndefined(),
                 PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, null, haulables))    //8f hardcoded in CheckForGetOpportunityDuplicate
