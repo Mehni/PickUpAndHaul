@@ -27,7 +27,9 @@ namespace PickUpAndHaul
             
             Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
             yield return nextTarget;
-            yield return CheckForOverencumbered();//Probably redundant without CE checks
+
+            //honestly the workgiver checks for encumbered, so until CE checks are in this is unnecessary
+            //yield return CheckForOverencumbered();//Probably redundant without CE checks
 
             Toil gotoThing = new Toil
             {
