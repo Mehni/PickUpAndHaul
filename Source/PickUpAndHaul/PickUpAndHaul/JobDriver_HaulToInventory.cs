@@ -12,7 +12,7 @@ namespace PickUpAndHaul
     {
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            Log.Message($"{pawn} hauling {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
+            Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
             this.pawn.ReserveAsManyAsPossible(this.job.targetQueueA, this.job);
             this.pawn.ReserveAsManyAsPossible(this.job.targetQueueB, this.job);
             return this.pawn.Reserve(this.job.targetQueueA[0], this.job) && pawn.Reserve(job.targetB, this.job);

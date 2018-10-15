@@ -87,7 +87,7 @@ namespace PickUpAndHaul
             Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
             Log.Message($"-------------------------------------------------------------------");
             Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
-            Log.Message($"{pawn} job is haulin {thing} to {storeCell}:{capacityStoreCell}");
+            Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
 
             //Find extra things than can be hauled to inventory, queue to reserve them
             DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
