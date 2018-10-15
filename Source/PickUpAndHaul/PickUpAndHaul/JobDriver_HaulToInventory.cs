@@ -26,9 +26,8 @@ namespace PickUpAndHaul
             Toil wait = Toils_General.Wait(2);
             
             Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
-            Toil gotoStore = Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
             yield return nextTarget;
-            yield return CheckForOverencumbered(gotoStore);//Probably redundant without CE checks
+            yield return CheckForOverencumbered();//Probably redundant without CE checks
 
             Toil gotoThing = new Toil
             {
@@ -87,11 +86,26 @@ namespace PickUpAndHaul
                         }
                         catch (TypeLoadException) { }
                     }
+                    //thing still remains, so queue up hauling if we can + end the current job (smooth/instant transition)
+                    //This will technically release the reservations in the queue, but what can you do
+                    if (thing.Spawned)
+                    {
+                        Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
+                        if (haul?.TryMakePreToilReservations(actor, false) ?? false)
+                        {
+                            actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                        }
+                        actor.jobs.curDriver.JumpToToil(wait);
+                    }
                 }
             };
             yield return takeThing;
             yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty<LocalTargetInfo>());
-            yield return gotoStore;
+
+            //maintain cell reservations on the trip back
+            //TODO: do that when we carry things
+            //I guess that means TODO: implement carrying the rest of the items in this job instead of falling back on HaulToStorageJob
+            yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
 
             yield return new Toil()//Queue next job
             {
@@ -113,7 +127,7 @@ namespace PickUpAndHaul
             yield return wait;
         }
         
-        public Toil CheckForOverencumbered(Toil jumpToil)
+        public Toil CheckForOverencumbered()
         {
             Toil toil = new Toil();
             toil.initAction = delegate
@@ -142,7 +156,13 @@ namespace PickUpAndHaul
 
                 if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/))
                 {
-                    actor.jobs.curDriver.JumpToToil(jumpToil);
+                    Job haul = HaulAIUtility.HaulToStorageJob(actor, nextThing);
+                    if (haul?.TryMakePreToilReservations(actor, false) ?? false)
+                    {
+                        //note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
+                        actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
+                        this.EndJobWith(JobCondition.Succeeded);
+                    }
                 }
             };
             return toil;
