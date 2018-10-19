@@ -64,7 +64,8 @@ namespace PickUpAndHaul
             }
             catch (TypeLoadException) { }
 
-            Log.Message("PickUpAndHaul v0.1.0.3 welcomes you to RimWorld with pointless logspam.");
+            Verse.Log.Message("PickUpAndHaul v0.1.0.3 welcomes you to RimWorld with pointless logspam.");
+            harmony.PatchAll();
         }
 
         private static bool AllowToolHaulUrgentlyJobOnThing_PreFix(ref Job __result, Pawn pawn, Thing t, bool forced = false)
@@ -88,10 +89,9 @@ namespace PickUpAndHaul
                         return false;
                     }
 
-                    Job haul = new Job(PickUpAndHaulJobDefOf.HaulToInventory, t, storeCell)
-                    {
-                        count = t.stackCount
-                    };
+                    WorkGiver_HaulToInventory haulWG = (WorkGiver_HaulToInventory)pawn.workSettings.WorkGiversInOrderNormal.Find(wg => wg is WorkGiver_HaulToInventory);
+                    
+                    Job haul = haulWG.JobOnThing(pawn, t, forced);
                     __result = haul;
                     return false;
                 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using RimWorld;
 using UnityEngine;
@@ -11,36 +12,24 @@ namespace PickUpAndHaul
     {
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            return this.pawn.Reserve(this.job.targetA, this.job) && pawn.Reserve(job.targetB, this.job);
+            Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
+            this.pawn.ReserveAsManyAsPossible(this.job.targetQueueA, this.job);
+            this.pawn.ReserveAsManyAsPossible(this.job.targetQueueB, this.job);
+            return this.pawn.Reserve(this.job.targetQueueA[0], this.job) && pawn.Reserve(job.targetB, this.job);
         }
 
-        //reserve, goto, take, check for more. Branches off to "all over the place"
+        //get next, goto, take, check for more. Branches off to "all over the place"
         protected override IEnumerable<Toil> MakeNewToils()
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-            DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
-
-            //Thanks to AlexTD for the more dynamic search range
-            float searchForOthersRangeFraction = 0.5f;
-            float distanceToOthers = 0f;
 
             Toil wait = Toils_General.Wait(2);
-            Toil reserveTargetA = Toils_Reserve.Reserve(TargetIndex.A);
+            
+            Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
+            yield return nextTarget;
 
-            Toil calculateExtraDistanceToGo = new Toil
-            {
-                initAction = () =>
-                {
-                    if (StoreUtility.TryFindStoreCellNearColonyDesperate(this.job.targetA.Thing, this.pawn, out IntVec3 storeLoc))
-                        distanceToOthers = (storeLoc - job.targetA.Thing.Position).LengthHorizontal * searchForOthersRangeFraction;
-                }
-            };
-            yield return calculateExtraDistanceToGo;
-
-            Toil checkForOtherItemsToHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers);
-            Toil checkForOtherItemsToUrgentlyHaulToInventory = CheckForOtherItemsToHaulToInventory(reserveTargetA, TargetIndex.A, distanceToOthers, x => pawn.Map.designationManager.DesignationOn(x)?.def == HaulUrgentlyDesignation);
-
-            yield return reserveTargetA;
+            //honestly the workgiver checks for encumbered, so until CE checks are in this is unnecessary
+            //yield return CheckForOverencumbered();//Probably redundant without CE checks
 
             Toil gotoThing = new Toil
             {
@@ -62,7 +51,8 @@ namespace PickUpAndHaul
                     Toils_Haul.ErrorCheckForCarry(actor, thing);
 
                     //get max we can pick up
-                    int num = Mathf.Min(thing.stackCount, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing), job.count);
+                    int countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
+                    Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
                     // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
@@ -73,36 +63,17 @@ namespace PickUpAndHaul
                             if (ModCompatibilityCheck.CombatExtendedIsActive)
                             {
                                 CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                ceCompInventory.CanFitInInventory(thing, out num);
+                                ceCompInventory.CanFitInInventory(thing, out countToPickUp);
                             }
                         }))();
                     }
                     catch (TypeLoadException) { }
 
-                    //can't store more, so queue up hauling if we can + end the current job (smooth/instant transition)
-                    if (num <= 0)
+                    if (countToPickUp > 0)
                     {
-                        Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
-                        if (haul?.TryMakePreToilReservations(actor, false) ?? false)
-                        {
-                            actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
-                        }
-                        actor.jobs.curDriver.JumpToToil(wait);
-                    }
-                    else
-                    {
-                        bool isUrgent = false;
-                        if (ModCompatibilityCheck.AllowToolIsActive)
-                        {
-                            //check BEFORE absorbing the thing, designation disappears when it's in inventory :^)
-                            if (pawn.Map.designationManager.DesignationOn(thing)?.def == HaulUrgentlyDesignation)
-                            {
-                                isUrgent = true;
-                            }
-                        }
-
-                        actor.inventory.GetDirectlyHeldThings().TryAdd(thing.SplitOff(num)); 
-                        takenToInventory.RegisterHauledItem(thing);
+                        Thing splitThing = thing.SplitOff(countToPickUp);
+                        actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, false);
+                        takenToInventory.RegisterHauledItem(splitThing);
 
                         try
                         {
@@ -116,42 +87,56 @@ namespace PickUpAndHaul
                             }))();
                         }
                         catch (TypeLoadException) { }
-
-                        if (isUrgent)
+                    }
+                    //thing still remains, so queue up hauling if we can + end the current job (smooth/instant transition)
+                    //This will technically release the reservations in the queue, but what can you do
+                    if (thing.Spawned)
+                    {
+                        Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
+                        if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                         {
-                            actor.jobs.curDriver.JumpToToil(checkForOtherItemsToUrgentlyHaulToInventory);
+                            actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
                         }
+                        actor.jobs.curDriver.JumpToToil(wait);
                     }
                 }
             };
             yield return takeThing;
-            yield return checkForOtherItemsToHaulToInventory; //we end the job in there, so only one of the checks for duplicates gets called.
-            yield return checkForOtherItemsToUrgentlyHaulToInventory;
+            yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty<LocalTargetInfo>());
+
+            //maintain cell reservations on the trip back
+            //TODO: do that when we carry things
+            //I guess that means TODO: implement carrying the rest of the items in this job instead of falling back on HaulToStorageJob
+            yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
+
+            yield return new Toil()//Queue next job
+            {
+                initAction = () =>
+                {
+                    Pawn actor = pawn;
+                    Job curJob = actor.jobs.curJob;
+                    LocalTargetInfo storeCell = curJob.targetB;
+
+                    Job unloadJob = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
+                    if (unloadJob.TryMakePreToilReservations(actor, false))
+                    {
+                        actor.jobs.jobQueue.EnqueueFirst(unloadJob, new JobTag?(JobTag.Misc));
+                        this.EndJobWith(JobCondition.Succeeded);
+                        //This will technically release the cell reservations in the queue, but what can you do
+                    }
+                }
+            };
             yield return wait;
         }
-
-
-        //regular Toils_Haul.CheckForGetOpportunityDuplicate isn't going to work for our purposes, since we're not carrying anything. 
-        //Carrying something yields weird results with unspawning errors when transfering to inventory, so we copy-past-- I mean, implement our own.
-        public Toil CheckForOtherItemsToHaulToInventory(Toil getHaulTargetToil, TargetIndex haulableInd, float distanceToOthers, Predicate<Thing> extraValidator = null)
+        
+        public Toil CheckForOverencumbered()
         {
             Toil toil = new Toil();
             toil.initAction = delegate
             {
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
-                IntVec3 storeCell = IntVec3.Invalid;
-
-                bool Validator(Thing t) => t.Spawned && HaulAIUtility.PawnCanAutomaticallyHaulFast(actor, t, false)
-                                          && !t.IsInValidBestStorage()
-                                          && !t.IsForbidden(actor)
-                                          && !(t is Corpse)
-                                          && StoreUtility.TryFindBestBetterStoreCellFor(t, this.pawn, this.pawn.Map, StoreUtility.CurrentStoragePriorityOf(t), actor.Faction, out storeCell)
-                                          && (extraValidator == null || extraValidator(t))
-                                          && actor.CanReserve(t);
-
-                Thing thing = GenClosest.ClosestThingReachable(actor.Position, actor.Map, ThingRequest.ForGroup(ThingRequestGroup.HaulableAlways), PathEndMode.ClosestTouch, 
-                    TraverseParms.For(actor), Math.Max(distanceToOthers, 12f), Validator);
+                Thing nextThing = curJob.targetA.Thing;
 
                 //float usedBulkByPct = 1f;
                 //float usedWeightByPct = 1f;
@@ -171,30 +156,15 @@ namespace PickUpAndHaul
                 //catch (TypeLoadException) { }
 
 
-                if (thing != null && (MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/))
+                if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/))
                 {
-                    curJob.SetTarget(haulableInd, thing);
-                    actor.Reserve(storeCell, this.job);
-                    this.job.count = 99999; //done for "num", to solve scenarios like hauling 150 meat to single free spot near stove
-                    actor.jobs.curDriver.JumpToToil(getHaulTargetToil);
-                    return;
-                }
-                if (thing != null)
-                {
-                    Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
+                    Job haul = HaulAIUtility.HaulToStorageJob(actor, nextThing);
                     if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                     {
                         //note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
                         actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
                         this.EndJobWith(JobCondition.Succeeded);
-                        return;
                     }
-                }
-                Job unload = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
-                if (unload.TryMakePreToilReservations(actor, false))
-                {
-                    actor.jobs.jobQueue.EnqueueFirst(unload, JobTag.Misc);
-                    this.EndJobWith(JobCondition.Succeeded);
                 }
             };
             return toil;
