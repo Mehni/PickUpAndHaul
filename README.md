@@ -43,5 +43,5 @@ Come join us on discord. https://discord.gg/RimWorld
 On the one hand this takes away a frustration of mine, but I can't deny that it won't make the game at least somewhat easier. You can bring back some of that challenge again with my other mods like [Sun Tzu Raider Tactics](https://steamcommunity.com/sharedfiles/filedetails/?id=1147799676) or [Climate Cycle ++](https://steamcommunity.com/sharedfiles/filedetails/?id=1266884568).
 
 Ludeon: https://ludeon.com/forums/index.php?topic=35832  
-Steam: http://steamcommunity.com/sharedfiles/filedetails/?id=1279012058
+Steam: http://steamcommunity.com/sharedfiles/filedetails/?id=1279012058  
 GitHub: https://github.com/Mehni/PickUpAndHaul/releases
