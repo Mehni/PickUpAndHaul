@@ -17,7 +17,7 @@ namespace PickUpAndHaul
     {
         static HarmonyPatches()
         {
-            HarmonyInstance harmony = HarmonyInstance.Create("mehni.rimworld.pickupthatcan.main");
+            HarmonyInstance harmony = HarmonyInstance.Create("mehni.rimworld.pickupandhaul.main");
 
             harmony.Patch(AccessTools.Method(typeof(FloatMenuMakerMap), "AddHumanlikeOrders"), null, null,
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(FloatMenuMakerMad_AddHumanlikeOrders_Transpiler)));
@@ -37,34 +37,36 @@ namespace PickUpAndHaul
             harmony.Patch(AccessTools.Method(typeof(JobGiver_Idle), "TryGiveJob"), null,
                 new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)), null);
 
-            try
-            {
-                ((Action)(() =>
-                {
-                    if (ModCompatibilityCheck.AllowToolIsActive)
-                    {
-                        harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), nameof(AllowTool.WorkGiver_HaulUrgently.JobOnThing)),
-                            new HarmonyMethod(typeof(HarmonyPatches), nameof(AllowToolHaulUrgentlyJobOnThing_PreFix)), null, null);
-                    }
-                }))();
-            }
-            catch (TypeLoadException) { }
+            //await async UpdateAllowTool(async)
+            //try
+            //{
+            //    ((Action)(() =>
+            //    {
+            //        if (ModCompatibilityCheck.AllowToolIsActive)
+            //        {
+            //            harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), nameof(AllowTool.WorkGiver_HaulUrgently.JobOnThing)),
+            //                new HarmonyMethod(typeof(HarmonyPatches), nameof(AllowToolHaulUrgentlyJobOnThing_PreFix)), null, null);
+            //        }
+            //    }))();
+            //}
+            //catch (TypeLoadException) { }
             
-            //Thanks to AlexTD for the While You're Up functionality improvement
-            try
-            {
-                ((Action)(() =>
-                {
-                    if (ModCompatibilityCheck.WhileYoureUpIsActive)
-                    {
-                        harmony.Patch(AccessTools.Method(typeof(WhileYoureUp.Utils), "MaybeHaulOtherStuffFirst"),
-                            null, new HarmonyMethod(typeof(HarmonyPatches), nameof(WhileYoureUpMaybeHaulOtherStuffFirst_PostFix)), null);
-                    }
-                }))();
-            }
-            catch (TypeLoadException) { }
+            ////Thanks to AlexTD for the While You're Up functionality improvement
+            /// Currently commented out because Why Does It Still exist even?
+            //try
+            //{
+            //    ((Action)(() =>
+            //    {
+            //        if (ModCompatibilityCheck.WhileYoureUpIsActive)
+            //        {
+            //            harmony.Patch(AccessTools.Method(typeof(WhileYoureUp.Utils), "MaybeHaulOtherStuffFirst"),
+            //                null, new HarmonyMethod(typeof(HarmonyPatches), nameof(WhileYoureUpMaybeHaulOtherStuffFirst_PostFix)), null);
+            //        }
+            //    }))();
+            //}
+            //catch (TypeLoadException) { }
 
-            Verse.Log.Message("PickUpAndHaul v0.1.0.3 welcomes you to RimWorld with pointless logspam.");
+            Verse.Log.Message("PickUpAndHaul v0.1.0.4 welcomes you to RimWorld with pointless logspam.");
             harmony.PatchAll();
         }
 

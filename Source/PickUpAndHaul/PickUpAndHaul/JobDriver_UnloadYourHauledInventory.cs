@@ -104,8 +104,8 @@ namespace PickUpAndHaul
                         {
                             if (ModCompatibilityCheck.CombatExtendedIsActive)
                             {
-                                CombatExtended.CompInventory ceCompInventory = pawn.GetComp<CombatExtended.CompInventory>();
-                                ceCompInventory.UpdateInventory();
+                                //CombatExtended.CompInventory ceCompInventory = pawn.GetComp<CombatExtended.CompInventory>();
+                                //ceCompInventory.UpdateInventory();
                             }
                         }))();
                     }

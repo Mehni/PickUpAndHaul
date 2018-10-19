@@ -62,8 +62,8 @@ namespace PickUpAndHaul
                         {
                             if (ModCompatibilityCheck.CombatExtendedIsActive)
                             {
-                                CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                ceCompInventory.CanFitInInventory(thing, out countToPickUp);
+                                //CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
+                                //ceCompInventory.CanFitInInventory(thing, out countToPickUp);
                             }
                         }))();
                     }
@@ -81,8 +81,8 @@ namespace PickUpAndHaul
                             {
                                 if (ModCompatibilityCheck.CombatExtendedIsActive)
                                 {
-                                    CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                    ceCompInventory.UpdateInventory();
+                                    //CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
+                                    //ceCompInventory.UpdateInventory();
                                 }
                             }))();
                         }

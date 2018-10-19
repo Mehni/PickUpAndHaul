@@ -31,7 +31,7 @@ namespace PickUpAndHaul
                 }
                 catch (Exception arg)
                 {
-                    Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
+                    Verse.Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
                     carriedThing.Clear();
                     pawn.inventory.UnloadEverything = true;
                 }
@@ -73,7 +73,7 @@ namespace PickUpAndHaul
 
             if (Find.TickManager.TicksGame % 50 == 0 && pawn.inventory.innerContainer.Count < carriedThing.Count)
             {
-                Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
+                Verse.Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
                 carriedThing.Clear();
                 pawn.inventory.UnloadEverything = true;
             }
