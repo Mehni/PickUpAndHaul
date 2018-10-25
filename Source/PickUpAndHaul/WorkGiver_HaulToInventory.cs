@@ -218,6 +218,9 @@ namespace PickUpAndHaul
 
         public static int CapacityAt(ThingDef def, IntVec3 storeCell, Map map)
         {
+            if (ExtendedStorage_Support.CapacityAt(def, storeCell, map, out int cap))
+                return cap;
+
             int capacity = def.stackLimit;
 
             Thing preExistingThing = map.thingGrid.ThingAt(storeCell, def);

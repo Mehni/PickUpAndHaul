@@ -38,6 +38,10 @@
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="ExtendedStorage">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\workshop\content\294100\731732064\Assemblies\ExtendedStorage.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -52,6 +56,7 @@
   <ItemGroup>
     <Compile Include="CompHauledToInventory.cs" />
     <Compile Include="DebugLog.cs" />
+    <Compile Include="ExtendedStorage_Support.cs" />
     <Compile Include="GearTabHighlight.cs" />
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="JobDriver_HaulToInventory.cs" />
