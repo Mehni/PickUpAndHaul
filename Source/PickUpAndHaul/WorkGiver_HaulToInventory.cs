@@ -261,6 +261,9 @@ namespace PickUpAndHaul
                 else
                 {
                     Log.Message($"{nextThing} can't stack with allocated cells");
+
+                    if (job.targetQueueA.NullOrEmpty())
+                        job.targetQueueA.Add(nextThing);
                     return false;
                 }
             }
@@ -269,7 +272,6 @@ namespace PickUpAndHaul
             int count = nextThing.stackCount;
             storeCellCapacity[storeCell].capacity -= count;
             Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
-            
 
             while (storeCellCapacity[storeCell].capacity <= 0)
             {
