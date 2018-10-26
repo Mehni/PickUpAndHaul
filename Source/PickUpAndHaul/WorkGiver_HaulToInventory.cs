@@ -45,9 +45,17 @@ namespace PickUpAndHaul
         public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
             //bulky gear (power armor + minigun) so don't bother.
-            if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return null;
-            
-            if (!GoodThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)) return null;
+            if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f)
+                return null;
+
+            DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
+
+            //This WorkGiver gets hijacked by AllowTool and expects us to urgently haul corpses.
+            if (ModCompatibilityCheck.AllowToolIsActive && thing is Corpse && pawn.Map.designationManager.DesignationOn(thing)?.def == HaulUrgentlyDesignation && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+                return HaulAIUtility.HaulToStorageJob(pawn, thing);
+
+            if (!GoodThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+                return null;
 
             StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
             if (StoreUtility.TryFindBestBetterStoreCellFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true))
@@ -90,7 +98,6 @@ namespace PickUpAndHaul
             Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
 
             //Find extra things than can be hauled to inventory, queue to reserve them
-            DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
             bool isUrgent = false;
             if (ModCompatibilityCheck.AllowToolIsActive &&
                 pawn.Map.designationManager.DesignationOn(thing)?.def == HaulUrgentlyDesignation)

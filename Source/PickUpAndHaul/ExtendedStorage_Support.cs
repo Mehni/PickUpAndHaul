@@ -35,7 +35,7 @@ namespace PickUpAndHaul
                 if (thing.Position == storeCell) continue;  
 
                 ExtendedStorage.Building_ExtendedStorage storage = thing as ExtendedStorage.Building_ExtendedStorage;
-                
+
                 if(storage.StoredThingTotal == 0)
                     capacity = (int)(def.stackLimit * storage.GetStatValue(ExtendedStorage.DefReferences.Stat_ES_StorageFactor));
                 else 

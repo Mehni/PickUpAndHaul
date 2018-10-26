@@ -66,7 +66,7 @@ namespace PickUpAndHaul
             //}
             //catch (TypeLoadException) { }
 
-            Verse.Log.Message("PickUpAndHaul v0.1.0.4 welcomes you to RimWorld with pointless logspam.");
+            Verse.Log.Message("PickUpAndHaul v0.1.0.5 welcomes you to RimWorld with pointless logspam.");
             harmony.PatchAll();
         }
 
