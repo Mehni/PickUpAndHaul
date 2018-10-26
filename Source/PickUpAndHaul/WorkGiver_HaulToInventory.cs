@@ -24,7 +24,8 @@ namespace PickUpAndHaul
                 && !t.IsInValidBestStorage()
                 && !t.IsForbidden(pawn)
                 && !(t is Corpse)
-                && pawn.CanReserve(t);
+                && pawn.CanReserve(t)
+                && t.GetInnerIfMinified().def.category == ThingCategory.Item;
 
         public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced)
         {
