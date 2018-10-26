@@ -104,6 +104,34 @@ namespace PickUpAndHaul
             yield return takeThing;
             yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty<LocalTargetInfo>());
 
+            //Find more to haul, in case things spawned while this was in progess
+            yield return new Toil()
+            {
+                initAction = () =>
+                {
+                    Pawn actor = pawn;
+                    Job curJob = actor.jobs.curJob;
+                    LocalTargetInfo storeCell = curJob.targetB;
+
+                    List<Thing> haulables = actor.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
+                    WorkGiver_HaulToInventory haulMoreWork = actor.workSettings.WorkGiversInOrderNormal.First(wg => wg is WorkGiver_HaulToInventory) as WorkGiver_HaulToInventory;
+                    Thing haulMoreThing = GenClosest.ClosestThing_Global(actor.Position, haulables, 12, t => haulMoreWork.HasJobOnThing(actor, t, false));
+
+                    //WorkGiver_HaulToInventory found more work nearby
+                    if (haulMoreThing != null)
+                    {
+                        Log.Message($"{actor} hauling again : {haulMoreThing}");
+                        Job haulMoreJob = haulMoreWork.JobOnThing(actor, haulMoreThing);
+
+                        if (haulMoreJob.TryMakePreToilReservations(actor, false))
+                        {
+                            actor.jobs.jobQueue.EnqueueFirst(haulMoreJob, new JobTag?(JobTag.Misc));
+                            this.EndJobWith(JobCondition.Succeeded);
+                        }
+                    }
+                }
+            };
+
             //maintain cell reservations on the trip back
             //TODO: do that when we carry things
             //I guess that means TODO: implement carrying the rest of the items in this job instead of falling back on HaulToStorageJob
