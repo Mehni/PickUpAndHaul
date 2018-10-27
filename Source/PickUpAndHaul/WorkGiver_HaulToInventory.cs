@@ -242,7 +242,7 @@ namespace PickUpAndHaul
             Map map = pawn.Map;
             KeyValuePair<IntVec3, CellAllocation> allocation = storeCellCapacity.FirstOrDefault(kvp => 
                 kvp.Key.GetSlotGroup(map).parent.Accepts(nextThing) && 
-                kvp.Value.allocated.CanStackWith(nextThing));
+                (nextThing == kvp.Value.allocated || kvp.Value.allocated.CanStackWith(nextThing)));
             IntVec3 storeCell = allocation.Key;
 
             //Can't stack with allocated cells, find a new cell:
