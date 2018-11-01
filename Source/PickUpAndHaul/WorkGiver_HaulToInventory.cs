@@ -80,19 +80,15 @@ namespace PickUpAndHaul
                 JobFailReason.Is("NoEmptyPlaceLower".Translate());
                 return null;
             }
-
-            if (MassUtility.EncumbrancePercent(pawn) >= 0.90f)
-            {
-                Job haul = HaulAIUtility.HaulToStorageJob(pawn, thing);
-                return haul;
-            }
+            
+            //Thanks to bananass00
+            if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) 
+                return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             //credit to Dingo
             int capacityStoreCell = CapacityAt(thing.def, storeCell, pawn.Map);
 
             if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
-
-            if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
             Log.Message($"-------------------------------------------------------------------");
