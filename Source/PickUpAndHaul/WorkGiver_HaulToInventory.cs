@@ -92,6 +92,8 @@ namespace PickUpAndHaul
 
             if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
+            if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) return HaulAIUtility.HaulToStorageJob(pawn, thing);
+
             Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
             Log.Message($"-------------------------------------------------------------------");
             Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
