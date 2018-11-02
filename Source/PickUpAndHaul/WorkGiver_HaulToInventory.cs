@@ -104,7 +104,6 @@ namespace PickUpAndHaul
                 isUrgent = true;
 
             Func<Thing, bool> validatorExtra = (Thing t) =>
-                !job.targetQueueA.Contains(t) &&
                 (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == HaulUrgentlyDesignation) &&
                 GoodThingToHaul(t, pawn) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
 
