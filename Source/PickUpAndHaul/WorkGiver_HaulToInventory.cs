@@ -80,8 +80,8 @@ namespace PickUpAndHaul
                 JobFailReason.Is("NoEmptyPlaceLower".Translate());
                 return null;
             }
-            
-            //Thanks to bananass00
+
+            //https://github.com/Mehni/PickUpAndHaul/pull/18
             if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) 
                 return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
