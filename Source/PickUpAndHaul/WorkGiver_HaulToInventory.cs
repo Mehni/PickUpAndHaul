@@ -81,11 +81,9 @@ namespace PickUpAndHaul
                 return null;
             }
 
-            if (MassUtility.EncumbrancePercent(pawn) >= 0.90f)
-            {
-                Job haul = HaulAIUtility.HaulToStorageJob(pawn, thing);
-                return haul;
-            }
+            //https://github.com/Mehni/PickUpAndHaul/pull/18
+            if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) 
+                return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             //credit to Dingo
             int capacityStoreCell = CapacityAt(thing.def, storeCell, pawn.Map);

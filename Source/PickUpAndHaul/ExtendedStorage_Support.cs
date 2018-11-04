@@ -34,7 +34,7 @@ namespace PickUpAndHaul
                 //thing.Position seems to be the input cell, which can just be handled normally
                 if (thing.Position == storeCell) continue;  
 
-                ExtendedStorage.Building_ExtendedStorage storage = thing as ExtendedStorage.Building_ExtendedStorage;
+                if (!(thing is ExtendedStorage.Building_ExtendedStorage storage)) continue;
 
                 if(storage.StoredThingTotal == 0)
                     capacity = (int)(def.stackLimit * storage.GetStatValue(ExtendedStorage.DefReferences.Stat_ES_StorageFactor));
