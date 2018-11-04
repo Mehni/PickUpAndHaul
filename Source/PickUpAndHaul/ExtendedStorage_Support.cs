@@ -31,8 +31,9 @@ namespace PickUpAndHaul
         {
             foreach (Thing thing in storeCell.GetThingList(map))
             {
-                //thing.Position seems to be the input cell, which can just be handled normally
-                if (thing.Position == storeCell) continue;  
+                //thing.Position seems to be the input cell, which should be clear if the storage is not near capacity
+                //so the game will choose that as best storage, so let's add capacity to that cell
+                if (thing.Position != storeCell) continue;  
 
                 if (!(thing is ExtendedStorage.Building_ExtendedStorage storage)) continue;
 
@@ -45,6 +46,29 @@ namespace PickUpAndHaul
             }
             capacity = 0;
             return false;
+        }
+
+        public static bool StackableAt(ThingDef def, IntVec3 storeCell, Map map)
+        {
+            if (ModCompatibilityCheck.ExtendedStorageIsActive)
+            {
+                try
+                {
+                    return StackableAtEx(def, storeCell, map);
+                }
+                catch (Exception e)
+                {
+                    Verse.Log.Warning($"Pick Up And Haul tried to get find Extended Storage building but it failed: {e}");
+                }
+            }
+            return false;
+        }
+
+        public static bool StackableAtEx(ThingDef def, IntVec3 storeCell, Map map)
+        {
+            Log.Message($"StackableAtEx {def}@{storeCell}, {storeCell.GetFirstThing<ExtendedStorage.Building_ExtendedStorage>(map) != null}");
+            return storeCell.GetFirstThing<ExtendedStorage.Building_ExtendedStorage>(map) != null;
+                // && storage.StoredThingDef == def //StoredThingDef is internal? okay then
         }
     }
 }

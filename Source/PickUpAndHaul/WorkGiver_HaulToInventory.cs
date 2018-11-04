@@ -234,12 +234,19 @@ namespace PickUpAndHaul
             return capacity;
         }
 
+        public static bool Stackable(Thing nextThing, KeyValuePair<IntVec3, CellAllocation> allocation)
+        {
+            return nextThing == allocation.Value.allocated
+                || allocation.Value.allocated.CanStackWith(nextThing)
+                || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
+        }
+
         public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
         {
             Map map = pawn.Map;
             KeyValuePair<IntVec3, CellAllocation> allocation = storeCellCapacity.FirstOrDefault(kvp => 
                 kvp.Key.GetSlotGroup(map).parent.Accepts(nextThing) && 
-                (nextThing == kvp.Value.allocated || kvp.Value.allocated.CanStackWith(nextThing)));
+                Stackable(nextThing, kvp));
             IntVec3 storeCell = allocation.Key;
 
             //Can't stack with allocated cells, find a new cell:
