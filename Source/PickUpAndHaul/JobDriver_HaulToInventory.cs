@@ -114,7 +114,7 @@ namespace PickUpAndHaul
                     LocalTargetInfo storeCell = curJob.targetB;
 
                     List<Thing> haulables = actor.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
-                    WorkGiver_HaulToInventory haulMoreWork = actor.workSettings.WorkGiversInOrderNormal.First(wg => wg is WorkGiver_HaulToInventory) as WorkGiver_HaulToInventory;
+                    WorkGiver_HaulToInventory haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker as WorkGiver_HaulToInventory;
                     Thing haulMoreThing = GenClosest.ClosestThing_Global(actor.Position, haulables, 12, t => haulMoreWork.HasJobOnThing(actor, t, false));
 
                     //WorkGiver_HaulToInventory found more work nearby
