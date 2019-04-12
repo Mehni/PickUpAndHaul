@@ -15,10 +15,10 @@ namespace PickUpAndHaul
         //And optimizing
         float searchForOthersRangeFraction = 0.5f;
 
-        public override bool ShouldSkip(Pawn pawn, bool forced = false)
-        {
-            return base.ShouldSkip(pawn) || pawn.Faction != Faction.OfPlayer || (!pawn.RaceProps.Humanlike) || pawn.TryGetComp<CompHauledToInventory>() == null; //hospitality check + misc robots & animals
-        }
+        public override bool ShouldSkip(Pawn pawn, bool forced = false) => base.ShouldSkip(pawn, forced)
+                || pawn.Faction != Faction.OfPlayer
+                || !pawn.RaceProps.Humanlike
+                || pawn.TryGetComp<CompHauledToInventory>() == null;
 
         public static bool GoodThingToHaul(Thing t, Pawn pawn) => t.Spawned
                 && !t.IsInValidBestStorage()
@@ -26,16 +26,17 @@ namespace PickUpAndHaul
                 && !(t is Corpse)
                 && pawn.CanReserve(t);
 
-        public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced)
+        public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
             //bulky gear (power armor + minigun) so don't bother.
-            if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f) return false;
-            
+            if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f)
+                return false;
+
             if (!GoodThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
                 return false;
 
             StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
-            return StoreUtility.TryFindBestBetterStoreCellFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell, true);
+            return StoreUtility.TryFindBestBetterStoreCellFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 _);
         }
 
         //pick up stuff until you can't anymore,
@@ -48,10 +49,11 @@ namespace PickUpAndHaul
             if (MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= 0.8f)
                 return null;
 
-            DesignationDef HaulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
+            DesignationDef haulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
 
             //This WorkGiver gets hijacked by AllowTool and expects us to urgently haul corpses.
-            if (ModCompatibilityCheck.AllowToolIsActive && thing is Corpse && pawn.Map.designationManager.DesignationOn(thing)?.def == HaulUrgentlyDesignation && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+            if (ModCompatibilityCheck.AllowToolIsActive && thing is Corpse
+                && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
                 return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             if (!GoodThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
@@ -67,11 +69,10 @@ namespace PickUpAndHaul
                     if (thing.def.ingestible.preferability == FoodPreferability.RawBad || thing.def.ingestible.preferability == FoodPreferability.RawTasty)
                     {
                         List<Thing> thingList = storeCell.GetThingList(thing.Map);
-                        for (int i = 0; i < thingList.Count; i++)
-                        {
-                            if (thingList[i].def == ThingDefOf.Hopper)
+
+                        foreach (Thing t in thingList)
+                            if (t.def == ThingDefOf.Hopper)
                                 return HaulAIUtility.HaulToStorageJob(pawn, thing);
-                        }
                     }
                 }
             }
@@ -82,7 +83,7 @@ namespace PickUpAndHaul
             }
 
             //https://github.com/Mehni/PickUpAndHaul/pull/18
-            if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) 
+            if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1))
                 return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             //credit to Dingo
@@ -96,13 +97,10 @@ namespace PickUpAndHaul
             Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
 
             //Find extra things than can be hauled to inventory, queue to reserve them
-            bool isUrgent = false;
-            if (ModCompatibilityCheck.AllowToolIsActive &&
-                pawn.Map.designationManager.DesignationOn(thing)?.def == HaulUrgentlyDesignation)
-                isUrgent = true;
+            bool isUrgent = ModCompatibilityCheck.AllowToolIsActive && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
             Func<Thing, bool> validatorExtra = (Thing t) =>
-                (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == HaulUrgentlyDesignation) &&
+                (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == haulUrgentlyDesignation) &&
                 GoodThingToHaul(t, pawn) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
 
 
@@ -137,7 +135,7 @@ namespace PickUpAndHaul
 
             List<Thing> haulables = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
                 .Where(validatorExtra).ToList();
-            
+
             Thing nextThing = thing;
             Thing lastThing = thing;
 
@@ -235,17 +233,15 @@ namespace PickUpAndHaul
         }
 
         public static bool Stackable(Thing nextThing, KeyValuePair<IntVec3, CellAllocation> allocation)
-        {
-            return nextThing == allocation.Value.allocated
-                || allocation.Value.allocated.CanStackWith(nextThing)
-                || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
-        }
+            => nextThing == allocation.Value.allocated
+            || allocation.Value.allocated.CanStackWith(nextThing)
+            || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
 
         public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
         {
             Map map = pawn.Map;
-            KeyValuePair<IntVec3, CellAllocation> allocation = storeCellCapacity.FirstOrDefault(kvp => 
-                kvp.Key.GetSlotGroup(map).parent.Accepts(nextThing) && 
+            KeyValuePair<IntVec3, CellAllocation> allocation = storeCellCapacity.FirstOrDefault(kvp =>
+                kvp.Key.GetSlotGroup(map).parent.Accepts(nextThing) &&
                 Stackable(nextThing, kvp));
             IntVec3 storeCell = allocation.Key;
 
@@ -286,7 +282,7 @@ namespace PickUpAndHaul
 
                 if (capacityOver == 0)
                     break;  //don't find new cell, might not have more of this thing to haul
-                
+
                 StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
                 if (TryFindBestBetterStoreCellFor(nextThing, pawn, map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
                 {
@@ -295,7 +291,7 @@ namespace PickUpAndHaul
 
                     int capacity = CapacityAt(nextThing.def, storeCell, map) - capacityOver;
                     storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacity);
-                    
+
                     Log.Message($"New cell {storeCell}:{capacity}, allocated extra {capacityOver}");
                 }
                 else
@@ -321,7 +317,7 @@ namespace PickUpAndHaul
                     && cell != default(IntVec3))
                 {
                     foundCell = cell;
-                    
+
                     skipCells.Add(cell);
 
                     return true;
@@ -332,14 +328,9 @@ namespace PickUpAndHaul
         }
 
         public static float AddedEnumberance(Pawn pawn, Thing thing)
-        {
-            return thing.stackCount * thing.GetStatValue(StatDefOf.Mass, true) / MassUtility.Capacity(pawn);
-        }
+            => thing.stackCount * thing.GetStatValue(StatDefOf.Mass) / MassUtility.Capacity(pawn);
 
         public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance)
-        {
-            return (int)Math.Ceiling((encumberance - 1) * MassUtility.Capacity(pawn) / thing.GetStatValue(StatDefOf.Mass, true));
-        }
-
+            => (int)Math.Ceiling((encumberance - 1) * MassUtility.Capacity(pawn) / thing.GetStatValue(StatDefOf.Mass));
     }
 }

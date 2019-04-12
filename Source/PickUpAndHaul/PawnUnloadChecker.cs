@@ -10,32 +10,20 @@ namespace PickUpAndHaul
 {
     public class PawnUnloadChecker
     {
-
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
             Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
-            if (itemsTakenToInventory == null) return;
+            if (itemsTakenToInventory == null)
+                return;
 
             HashSet<Thing> carriedThing = itemsTakenToInventory.GetHashSet();
 
-            if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike) return;
-            if (carriedThing?.Count == 0 || pawn.inventory.innerContainer.Count == 0) return;
-
-            if (carriedThing?.Count != 0)
-            {
-                try
-                {
-                    carriedThing.RemoveWhere((Thing t) => t?.ThingID == null || t.def == null);
-                }
-                catch (Exception arg)
-                {
-                    Verse.Log.Warning("There was an exception thrown by Pick Up And Haul. Pawn will clear inventory. \nException: " + arg);
-                    carriedThing.Clear();
-                    pawn.inventory.UnloadEverything = true;
-                }
-            }
+            if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike)
+                return;
+            if (carriedThing == null || carriedThing.Count == 0 || pawn.inventory.innerContainer.Count == 0)
+                return;
 
             if (forced)
             {
@@ -60,13 +48,11 @@ namespace PickUpAndHaul
                 foreach (Thing rottable in pawn.inventory.innerContainer)
                 {
                     CompRottable compRottable = rottable.TryGetComp<CompRottable>();
-                    if (compRottable != null)
+
+                    if (compRottable?.TicksUntilRotAtCurrentTemp < 30000)
                     {
-                        if (compRottable.TicksUntilRotAtCurrentTemp < 30000)
-                        {
-                            pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-                            return;
-                        }
+                        pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
+                        return;
                     }
                 }
             }
