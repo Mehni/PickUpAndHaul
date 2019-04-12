@@ -1,27 +1,27 @@
-﻿using System.Collections.Generic;
-using Verse;
-
-namespace PickUpAndHaul
+﻿namespace PickUpAndHaul
 {
+    using System.Collections.Generic;
+    using Verse;
+
     public class CompHauledToInventory : ThingComp
     {
-        private HashSet<Thing> TakenToInventory = new HashSet<Thing>();
+        private HashSet<Thing> takenToInventory = new HashSet<Thing>();
 
         public HashSet<Thing> GetHashSet()
         {
-            TakenToInventory.RemoveWhere(x => x == null);
-            return TakenToInventory;
+            takenToInventory.RemoveWhere(x => x == null);
+            return takenToInventory;
         }
         
         public void RegisterHauledItem(Thing thing)
         {
-            this.TakenToInventory.Add(thing);
+            this.takenToInventory.Add(thing);
         }
 
         public override void PostExposeData()
         {
             base.PostExposeData();
-            Scribe_Collections.Look<Thing>(ref this.TakenToInventory, "ThingsHauledToInventory", LookMode.Reference);
+            Scribe_Collections.Look(ref takenToInventory, "ThingsHauledToInventory", LookMode.Reference);
         }
     }
 }
