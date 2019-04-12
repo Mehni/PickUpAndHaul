@@ -1,21 +1,21 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using RimWorld;
-using UnityEngine;
-using Verse;
-using Verse.AI;
-
-namespace PickUpAndHaul
+﻿namespace PickUpAndHaul
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using RimWorld;
+    using UnityEngine;
+    using Verse;
+    using Verse.AI;
+
     public class JobDriver_HaulToInventory : JobDriver
     {
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
-            this.pawn.ReserveAsManyAsPossible(this.job.targetQueueA, this.job);
-            this.pawn.ReserveAsManyAsPossible(this.job.targetQueueB, this.job);
-            return this.pawn.Reserve(this.job.targetQueueA[0], this.job) && pawn.Reserve(job.targetB, this.job);
+            pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
+            pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
+            return pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
         }
 
         //get next, goto, take, check for more. Branches off to "all over the place"
@@ -35,7 +35,7 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                    this.pawn.pather.StartPath(this.TargetThingA, PathEndMode.ClosestTouch);
+                    pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch);
                 },
                 defaultCompleteMode = ToilCompleteMode.PatherArrival
             };
@@ -46,7 +46,7 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                    Pawn actor = this.pawn;
+                    Pawn actor = pawn;
                     Thing thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
                     Toils_Haul.ErrorCheckForCarry(actor, thing);
 
@@ -96,18 +96,18 @@ namespace PickUpAndHaul
                         Job haul = HaulAIUtility.HaulToStorageJob(actor, thing);
                         if (haul?.TryMakePreToilReservations(actor, false) ?? false)
                         {
-                            actor.jobs.jobQueue.EnqueueFirst(haul, new JobTag?(JobTag.Misc));
+                            actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
                         }
                         actor.jobs.curDriver.JumpToToil(wait);
                     }
                 }
             };
             yield return takeThing;
-            yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty<LocalTargetInfo>());
+            yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty());
 
             //Find more to haul, in case things spawned while this was in progess
-            yield return new Toil()
-            {
+            yield return new Toil
+                         {
                 initAction = () =>
                 {
                     Pawn actor = pawn;
@@ -126,8 +126,8 @@ namespace PickUpAndHaul
 
                         if (haulMoreJob.TryMakePreToilReservations(actor, false))
                         {
-                            actor.jobs.jobQueue.EnqueueFirst(haulMoreJob, new JobTag?(JobTag.Misc));
-                            this.EndJobWith(JobCondition.Succeeded);
+                            actor.jobs.jobQueue.EnqueueFirst(haulMoreJob, JobTag.Misc);
+                            EndJobWith(JobCondition.Succeeded);
                         }
                     }
                 }
@@ -138,7 +138,7 @@ namespace PickUpAndHaul
             //I guess that means TODO: implement carrying the rest of the items in this job instead of falling back on HaulToStorageJob
             yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
 
-            yield return new Toil()//Queue next job
+            yield return new Toil //Queue next job
             {
                 initAction = () =>
                 {
@@ -149,8 +149,8 @@ namespace PickUpAndHaul
                     Job unloadJob = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
                     if (unloadJob.TryMakePreToilReservations(actor, false))
                     {
-                        actor.jobs.jobQueue.EnqueueFirst(unloadJob, new JobTag?(JobTag.Misc));
-                        this.EndJobWith(JobCondition.Succeeded);
+                        actor.jobs.jobQueue.EnqueueFirst(unloadJob, JobTag.Misc);
+                        EndJobWith(JobCondition.Succeeded);
                         //This will technically release the cell reservations in the queue, but what can you do
                     }
                 }
@@ -192,7 +192,7 @@ namespace PickUpAndHaul
                     {
                         //note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
                         actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
-                        this.EndJobWith(JobCondition.Succeeded);
+                        EndJobWith(JobCondition.Succeeded);
                     }
                 }
             };

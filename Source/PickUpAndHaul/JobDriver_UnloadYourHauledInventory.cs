@@ -10,18 +10,16 @@ namespace PickUpAndHaul
     public class JobDriver_UnloadYourHauledInventory : JobDriver
     {
         private int countToDrop = -1;
-        private int UnloadDuration = 3;
+        private int unloadDuration = 3;
 
         public override void ExposeData()
         {
             base.ExposeData();
-            Scribe_Values.Look<int>(ref this.countToDrop, "countToDrop", -1);
+            Scribe_Values.Look<int>(ref countToDrop, "countToDrop", -1);
         }
-        
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
-        {
-            return true;
-        }
+            => true;
 
         /// <summary>
         /// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
@@ -33,13 +31,10 @@ namespace PickUpAndHaul
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
             if (ModCompatibilityCheck.ExtendedStorageIsActive)
-            {
-                //ES takes at least ~10 ticks to move from the feeder to the stockpile, so workaround ahoy
-                UnloadDuration = 20;
-            }
+                unloadDuration = 20;
 
-            Toil wait = Toils_General.Wait(UnloadDuration);
-            Toil celebrate = Toils_General.Wait(UnloadDuration);
+            Toil wait = Toils_General.Wait(unloadDuration);
+            Toil celebrate = Toils_General.Wait(unloadDuration);
 
             yield return wait;
             Toil findSpot = new Toil
@@ -49,23 +44,21 @@ namespace PickUpAndHaul
                     ThingCount unloadableThing = FirstUnloadableThing(pawn);
 
                     if (unloadableThing.Count == 0 && carriedThing.Count == 0)
-                    {
-                        this.EndJobWith(JobCondition.Succeeded);
-                    }
+                        EndJobWith(JobCondition.Succeeded);
 
                     if (unloadableThing.Count != 0)
                     {
                         //StoragePriority currentPriority = StoreUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
-                        if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, this.pawn, out IntVec3 c))
+                        if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, pawn, out IntVec3 c))
                         {
-                            this.pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing thing);
-                            this.EndJobWith(JobCondition.Succeeded);
+                            pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out Thing _);
+                            EndJobWith(JobCondition.Succeeded);
                         }
                         else
                         {
-                            this.job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-                            this.job.SetTarget(TargetIndex.B, c);
-                            this.countToDrop = unloadableThing.Thing.stackCount;
+                            job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+                            job.SetTarget(TargetIndex.B, c);
+                            countToDrop = unloadableThing.Thing.stackCount;
                         }
                     }
                 }
@@ -78,24 +71,24 @@ namespace PickUpAndHaul
             {
                 initAction = delegate
                 {
-                    Thing thing = this.job.GetTarget(TargetIndex.A).Thing;
-                    if (thing == null || !this.pawn.inventory.innerContainer.Contains(thing))
-                    { 
+                    Thing thing = job.GetTarget(TargetIndex.A).Thing;
+                    if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
+                    {
                         carriedThing.Remove(thing);
                         pawn.jobs.curDriver.JumpToToil(wait);
                         return;
                     }
-                    if (!this.pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
-                    { 
-                        this.pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, this.countToDrop, out thing);
-                        this.EndJobWith(JobCondition.Succeeded);
+                    if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
+                    {
+                        pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, countToDrop, out thing);
+                        EndJobWith(JobCondition.Succeeded);
                         carriedThing.Remove(thing);
                     }
                     else
                     {
-                        this.pawn.inventory.innerContainer.TryTransferToContainer(thing, this.pawn.carryTracker.innerContainer, this.countToDrop, out thing);
-                        this.job.count = this.countToDrop;
-                        this.job.SetTarget(TargetIndex.A, thing);
+                        pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer, countToDrop, out thing);
+                        job.count = countToDrop;
+                        job.SetTarget(TargetIndex.A, thing);
                         carriedThing.Remove(thing);
                     }
                     try
@@ -125,10 +118,9 @@ namespace PickUpAndHaul
             {
                 initAction = () =>
                 {
-                    if (pawn.Map.reservationManager.ReservedBy(this.job.targetB, pawn, pawn.CurJob) && !ModCompatibilityCheck.HCSKIsActive)
-                    {
-                        pawn.Map.reservationManager.Release(this.job.targetB, pawn, pawn.CurJob);
-                    }
+                    if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
+                     && !ModCompatibilityCheck.HCSKIsActive)
+                        pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
                 }
             };
             yield return releaseReservation;
@@ -136,7 +128,7 @@ namespace PickUpAndHaul
             yield return celebrate;
         }
 
-        static ThingCount FirstUnloadableThing(Pawn pawn)
+        private static ThingCount FirstUnloadableThing(Pawn pawn)
         {
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThings = itemsTakenToInventory.GetHashSet();
@@ -152,7 +144,7 @@ namespace PickUpAndHaul
                 //merged partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
                 {
-                    ThingDef stragglerDef = thing.def;                    
+                    ThingDef stragglerDef = thing.def;
                     //we have no method of grabbing the newly generated thingID. This is the solution to that.
                     IEnumerable<Thing> dirtyStragglers =
                         from straggler in pawn.inventory.innerContainer
@@ -162,9 +154,7 @@ namespace PickUpAndHaul
                     carriedThings.Remove(thing);
 
                     foreach (Thing dirtyStraggler in dirtyStragglers)
-                    {
                         return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
-                    }
                 }
                 return new ThingCount(thing, thing.stackCount);
             }
