@@ -37,68 +37,8 @@ namespace PickUpAndHaul
             harmony.Patch(original: AccessTools.Method(typeof(JobGiver_Idle), "TryGiveJob"),
                 postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)));
 
-            //await async UpdateAllowTool(async)
-            //try
-            //{
-            //    ((Action)(() =>
-            //    {
-            //        if (ModCompatibilityCheck.AllowToolIsActive)
-            //        {
-            //            harmony.Patch(AccessTools.Method(typeof(AllowTool.WorkGiver_HaulUrgently), nameof(AllowTool.WorkGiver_HaulUrgently.JobOnThing)),
-            //                new HarmonyMethod(typeof(HarmonyPatches), nameof(AllowToolHaulUrgentlyJobOnThing_PreFix)), null, null);
-            //        }
-            //    }))();
-            //}
-            //catch (TypeLoadException) { }
-
-            ////Thanks to AlexTD for the While You're Up functionality improvement
-            // Currently commented out because Why Does It Still exist even?
-            //try
-            //{
-            //    ((Action)(() =>
-            //    {
-            //        if (ModCompatibilityCheck.WhileYoureUpIsActive)
-            //        {
-            //            harmony.Patch(AccessTools.Method(typeof(WhileYoureUp.Utils), "MaybeHaulOtherStuffFirst"),
-            //                null, new HarmonyMethod(typeof(HarmonyPatches), nameof(WhileYoureUpMaybeHaulOtherStuffFirst_PostFix)), null);
-            //        }
-            //    }))();
-            //}
-            //catch (TypeLoadException) { }
-
             Verse.Log.Message("PickUpAndHaul v0.1.0.5 welcomes you to RimWorld with pointless logspam.");
             harmony.PatchAll();
-        }
-
-        private static bool AllowToolHaulUrgentlyJobOnThing_PreFix(ref Job __result, Pawn pawn, Thing t, bool forced = false)
-        {
-            if (ModCompatibilityCheck.AllowToolIsActive)
-            {
-                //allowTool HaulUrgently
-                CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-
-                if (pawn.RaceProps.Humanlike
-                    && pawn.Faction == Faction.OfPlayer
-                    && t is Corpse == false
-                    && takenToInventory != null
-                    && !t.def.defName.Contains("Chunk") //most of the time we don't have space for it
-                    )
-                {
-                    StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(t);
-                    if (!StoreUtility.TryFindBestBetterStoreCellFor(t, pawn, pawn.Map, currentPriority, pawn.Faction, out IntVec3 storeCell))
-                    {
-                        JobFailReason.Is("NoEmptyPlaceLower".Translate());
-                        return false;
-                    }
-
-                    WorkGiver_HaulToInventory haulWG = (WorkGiver_HaulToInventory)pawn.workSettings.WorkGiversInOrderNormal.Find(wg => wg is WorkGiver_HaulToInventory);
-
-                    Job haul = haulWG.JobOnThing(pawn, t, forced);
-                    __result = haul;
-                    return false;
-                }
-            }
-            return true;
         }
 
         private static bool Drop_Prefix(Pawn pawn, Thing thing)
@@ -131,7 +71,6 @@ namespace PickUpAndHaul
                 }
             }
         }
-
 
         private static void JobDriver_HaulToCell_PostFix(JobDriver_HaulToCell __instance)
         {
@@ -181,22 +120,6 @@ namespace PickUpAndHaul
                 }
                 yield return instruction;
             }
-        }
-
-        //Thanks to AlexTD
-        //Job WhileYoureUp.Utils.MaybeHaulOtherStuffFirst(Pawn pawn, LocalTargetInfo end)
-        public static void WhileYoureUpMaybeHaulOtherStuffFirst_PostFix(Pawn pawn, LocalTargetInfo end, ref Job __result)
-        {
-            if (__result == null || __result.def != JobDefOf.HaulToCell)
-                return;
-
-            if (!(pawn.workSettings.WorkGiversInOrderNormal.FirstOrDefault(wg => wg is WorkGiver_HaulToInventory) is WorkGiver_HaulToInventory worker)) return;
-
-            Job myJob = worker.JobOnThing(pawn, __result.targetA.Thing);
-            if (myJob == null)
-                return;
-
-            __result = myJob;
         }
     }
 }
