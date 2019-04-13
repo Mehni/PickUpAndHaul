@@ -24,7 +24,7 @@
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
             Toil wait = Toils_General.Wait(2);
-            
+
             Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
             yield return nextTarget;
 
@@ -79,16 +79,19 @@
                         try
                         {
                             ((Action)(() =>
-                            {
-                                if (ModCompatibilityCheck.CombatExtendedIsActive)
-                                {
-                                    //CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                    //ceCompInventory.UpdateInventory();
-                                }
-                            }))();
+                                      {
+                                          if (ModCompatibilityCheck.CombatExtendedIsActive)
+                                          {
+                                               //CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
+                                               //ceCompInventory.UpdateInventory();
+                                           }
+                                      }))();
                         }
-                        catch (TypeLoadException) { }
+                        catch (TypeLoadException)
+                        {
+                        }
                     }
+
                     //thing still remains, so queue up hauling if we can + end the current job (smooth/instant transition)
                     //This will technically release the reservations in the queue, but what can you do
                     if (thing.Spawned)
@@ -107,26 +110,22 @@
 
             //Find more to haul, in case things spawned while this was in progess
             yield return new Toil
-                         {
+            {
                 initAction = () =>
                 {
-                    Pawn actor = pawn;
-                    Job curJob = actor.jobs.curJob;
-                    LocalTargetInfo storeCell = curJob.targetB;
-
-                    List<Thing> haulables = actor.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
+                    List<Thing> haulables = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
                     WorkGiver_HaulToInventory haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker as WorkGiver_HaulToInventory;
-                    Thing haulMoreThing = GenClosest.ClosestThing_Global(actor.Position, haulables, 12, t => haulMoreWork.HasJobOnThing(actor, t, false));
+                    Thing haulMoreThing = GenClosest.ClosestThing_Global(pawn.Position, haulables, 12, t => haulMoreWork.HasJobOnThing(pawn, t, false));
 
                     //WorkGiver_HaulToInventory found more work nearby
                     if (haulMoreThing != null)
                     {
-                        Log.Message($"{actor} hauling again : {haulMoreThing}");
-                        Job haulMoreJob = haulMoreWork.JobOnThing(actor, haulMoreThing);
+                        Log.Message($"{pawn} hauling again : {haulMoreThing}");
+                        Job haulMoreJob = haulMoreWork.JobOnThing(pawn, haulMoreThing);
 
-                        if (haulMoreJob.TryMakePreToilReservations(actor, false))
+                        if (haulMoreJob.TryMakePreToilReservations(pawn, false))
                         {
-                            actor.jobs.jobQueue.EnqueueFirst(haulMoreJob, JobTag.Misc);
+                            pawn.jobs.jobQueue.EnqueueFirst(haulMoreJob, JobTag.Misc);
                             EndJobWith(JobCondition.Succeeded);
                         }
                     }
@@ -157,7 +156,7 @@
             };
             yield return wait;
         }
-        
+
         public Toil CheckForOverencumbered()
         {
             Toil toil = new Toil();

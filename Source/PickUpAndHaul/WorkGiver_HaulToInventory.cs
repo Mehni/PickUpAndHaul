@@ -220,10 +220,15 @@ namespace PickUpAndHaul
 
         public static int CapacityAt(ThingDef def, IntVec3 storeCell, Map map)
         {
-            if (ExtendedStorage_Support.CapacityAt(def, storeCell, map, out int cap))
-                return cap;
+            int capacity;
 
-            int capacity = def.stackLimit;
+            if (HoldMultipleThings_Support.CapacityAt(def, storeCell, map, out capacity))
+                return capacity;
+
+            if (ExtendedStorage_Support.CapacityAt(def, storeCell, map, out capacity))
+                return capacity;
+
+            capacity = def.stackLimit;
 
             Thing preExistingThing = map.thingGrid.ThingAt(storeCell, def);
             if (preExistingThing != null)
@@ -235,6 +240,7 @@ namespace PickUpAndHaul
         public static bool Stackable(Thing nextThing, KeyValuePair<IntVec3, CellAllocation> allocation)
             => nextThing == allocation.Value.allocated
             || allocation.Value.allocated.CanStackWith(nextThing)
+            || HoldMultipleThings_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map)
             || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
 
         public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)

@@ -10,7 +10,7 @@ namespace PickUpAndHaul
         [System.Diagnostics.Conditional("DEBUG")]
         public static void Message(string x)
         {
-            Verse.Log.Message(x);
+            Verse.Log.Message(x, true);
         }
     }
 }
