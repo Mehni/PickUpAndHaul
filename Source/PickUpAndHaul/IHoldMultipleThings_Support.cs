@@ -2,6 +2,8 @@
 
 namespace PickUpAndHaul
 {
+    using System.Linq;
+
     public class HoldMultipleThings_Support
     {
         // ReSharper disable SuspiciousTypeConversion.Global
@@ -9,30 +11,30 @@ namespace PickUpAndHaul
         {
             capacity = 0;
 
-            foreach (Thing t in storeCell.GetThingList(map))
+            var compOfHolding = (map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
+               .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
 
+            if (compOfHolding is IHoldMultipleThings.IHoldMultipleThings holderOfThings)
+                return holderOfThings.CapacityAt(def, storeCell, map, out capacity);
+
+            foreach (Thing t in storeCell.GetThingList(map))
                 if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
                     return holderOfMultipleThings.CapacityAt(def, storeCell, map, out capacity);
-
-                else if (t is ThingWithComps thingWith)
-                    foreach (ThingComp thingComp in thingWith.AllComps)
-                        if (thingComp is IHoldMultipleThings.IHoldMultipleThings compOfHolding)
-                            return compOfHolding.CapacityAt(def, storeCell, map, out capacity);
 
             return false;
         }
 
         public static bool StackableAt(ThingDef def, IntVec3 storeCell, Map map)
         {
-            foreach (Thing t in storeCell.GetThingList(map))
+            var compOfHolding = (map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
+               .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
 
+            if (compOfHolding is IHoldMultipleThings.IHoldMultipleThings holderOfThings)
+                return holderOfThings.StackableAt(def, storeCell, map);
+
+            foreach (Thing t in storeCell.GetThingList(map))
                 if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
                     return holderOfMultipleThings.StackableAt(def, storeCell, map);
-
-                else if (t is ThingWithComps thingWith)
-                    foreach (ThingComp thingComp in thingWith.AllComps)
-                        if (thingComp is IHoldMultipleThings.IHoldMultipleThings compOfHolding)
-                            return compOfHolding.StackableAt(def, storeCell, map);
 
             return false;
         }

@@ -13,7 +13,7 @@ namespace PickUpAndHaul
         //Thanks to AlexTD for the more dynamic search range
         //And queueing
         //And optimizing
-        float searchForOthersRangeFraction = 0.5f;
+        private const float SEARCH_FOR_OTHERS_RANGE_FRACTION = 0.5f;
 
         public override bool ShouldSkip(Pawn pawn, bool forced = false) => base.ShouldSkip(pawn, forced)
                 || pawn.Faction != Faction.OfPlayer
@@ -130,7 +130,7 @@ namespace PickUpAndHaul
             //}
             //catch (TypeLoadException) { }
 
-            float distanceToHaul = (storeCell - thing.Position).LengthHorizontal * searchForOthersRangeFraction;
+            float distanceToHaul = (storeCell - thing.Position).LengthHorizontal * SEARCH_FOR_OTHERS_RANGE_FRACTION;
             float distanceToSearchMore = Math.Max(12f, distanceToHaul);
 
             List<Thing> haulables = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
@@ -139,8 +139,10 @@ namespace PickUpAndHaul
             Thing nextThing = thing;
             Thing lastThing = thing;
 
-            Dictionary<IntVec3, CellAllocation> storeCellCapacity = new Dictionary<IntVec3, CellAllocation>();
-            storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacityStoreCell);
+            Dictionary<IntVec3, CellAllocation> storeCellCapacity = new Dictionary<IntVec3, CellAllocation>
+            {
+                [storeCell] = new CellAllocation(nextThing, capacityStoreCell)
+            };
             skipCells = new HashSet<IntVec3>() { storeCell };
 
             do
@@ -223,10 +225,15 @@ namespace PickUpAndHaul
             int capacity;
 
             if (HoldMultipleThings_Support.CapacityAt(def, storeCell, map, out capacity))
+            {
+                Log.Message($"Found capacity of {capacity}");
                 return capacity;
+            }
 
             if (ExtendedStorage_Support.CapacityAt(def, storeCell, map, out capacity))
                 return capacity;
+
+
 
             capacity = def.stackLimit;
 

@@ -33,9 +33,11 @@ namespace PickUpAndHaul
             {
                 //thing.Position seems to be the input cell, which should be clear if the storage is not near capacity
                 //so the game will choose that as best storage, so let's add capacity to that cell
-                if (thing.Position != storeCell) continue;  
+                if (thing.Position != storeCell)
+                    continue;  
 
-                if (!(thing is ExtendedStorage.Building_ExtendedStorage storage)) continue;
+                if (!(thing is ExtendedStorage.Building_ExtendedStorage storage))
+                    continue;
 
                 if(storage.StoredThingTotal == 0)
                     capacity = (int)(def.stackLimit * storage.GetStatValue(ExtendedStorage.DefReferences.Stat_ES_StorageFactor));
