@@ -115,7 +115,7 @@
                 {
                     List<Thing> haulables = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
                     WorkGiver_HaulToInventory haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker as WorkGiver_HaulToInventory;
-                    Thing haulMoreThing = GenClosest.ClosestThing_Global(pawn.Position, haulables, 12, t => haulMoreWork.HasJobOnThing(pawn, t, false));
+                    Thing haulMoreThing = GenClosest.ClosestThing_Global(pawn.Position, haulables, 12, t => haulMoreWork.HasJobOnThing(pawn, t));
 
                     //WorkGiver_HaulToInventory found more work nearby
                     if (haulMoreThing != null)

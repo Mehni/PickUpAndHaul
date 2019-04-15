@@ -4,8 +4,8 @@ namespace IHoldMultipleThings
 {
     public interface IHoldMultipleThings
     {
-        bool CapacityAt(ThingDef def, IntVec3 storeCell, Map map, out int capacity);
+        bool CapacityAt(Thing thing, IntVec3 storeCell, Map map, out int capacity);
 
-        bool StackableAt(ThingDef def, IntVec3 storeCell, Map map);
+        bool StackableAt(Thing thing, IntVec3 storeCell, Map map);
     }
 }

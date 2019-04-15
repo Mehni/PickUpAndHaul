@@ -87,7 +87,7 @@ namespace PickUpAndHaul
                 return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             //credit to Dingo
-            int capacityStoreCell = CapacityAt(thing.def, storeCell, pawn.Map);
+            int capacityStoreCell = CapacityAt(thing, storeCell, pawn.Map);
 
             if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
@@ -220,26 +220,26 @@ namespace PickUpAndHaul
             }
         }
 
-        public static int CapacityAt(ThingDef def, IntVec3 storeCell, Map map)
+        public static int CapacityAt(Thing thing, IntVec3 storeCell, Map map)
         {
             int capacity;
 
-            if (HoldMultipleThings_Support.CapacityAt(def, storeCell, map, out capacity))
+            if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out capacity))
             {
                 Log.Message($"Found capacity of {capacity}");
                 return capacity;
             }
 
-            if (ExtendedStorage_Support.CapacityAt(def, storeCell, map, out capacity))
+            if (ExtendedStorage_Support.CapacityAt(thing, storeCell, map, out capacity))
                 return capacity;
 
 
 
-            capacity = def.stackLimit;
+            capacity = thing.def.stackLimit;
 
-            Thing preExistingThing = map.thingGrid.ThingAt(storeCell, def);
+            Thing preExistingThing = map.thingGrid.ThingAt(storeCell, thing.def);
             if (preExistingThing != null)
-                capacity = def.stackLimit - preExistingThing.stackCount;
+                capacity = thing.def.stackLimit - preExistingThing.stackCount;
 
             return capacity;
         }
@@ -247,7 +247,7 @@ namespace PickUpAndHaul
         public static bool Stackable(Thing nextThing, KeyValuePair<IntVec3, CellAllocation> allocation)
             => nextThing == allocation.Value.allocated
             || allocation.Value.allocated.CanStackWith(nextThing)
-            || HoldMultipleThings_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map)
+            || HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key, nextThing.Map)
             || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
 
         public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
@@ -267,7 +267,7 @@ namespace PickUpAndHaul
                     storeCell = nextStoreCell;
                     job.targetQueueB.Add(storeCell);
 
-                    storeCellCapacity[storeCell] = new CellAllocation(nextThing, CapacityAt(nextThing.def, storeCell, map));
+                    storeCellCapacity[storeCell] = new CellAllocation(nextThing, CapacityAt(nextThing, storeCell, map));
 
                     Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
                 }
@@ -302,7 +302,7 @@ namespace PickUpAndHaul
                     storeCell = nextStoreCell;
                     job.targetQueueB.Add(storeCell);
 
-                    int capacity = CapacityAt(nextThing.def, storeCell, map) - capacityOver;
+                    int capacity = CapacityAt(nextThing, storeCell, map) - capacityOver;
                     storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacity);
 
                     Log.Message($"New cell {storeCell}:{capacity}, allocated extra {capacityOver}");

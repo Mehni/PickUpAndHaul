@@ -10,13 +10,13 @@ namespace PickUpAndHaul
 {
     class ExtendedStorage_Support
     {
-        public static bool CapacityAt(ThingDef def, IntVec3 storeCell, Map map, out int capacity)
+        public static bool CapacityAt(Thing thing, IntVec3 storeCell, Map map, out int capacity)
         {
             if (ModCompatibilityCheck.ExtendedStorageIsActive)
             {
                 try
                 {
-                    return CapacityAtEx(def, storeCell, map, out capacity);
+                    return CapacityAtEx(thing.def, storeCell, map, out capacity);
                 }
                 catch (Exception e)
                 {

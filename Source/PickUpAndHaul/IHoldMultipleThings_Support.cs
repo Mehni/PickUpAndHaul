@@ -7,7 +7,7 @@ namespace PickUpAndHaul
     public class HoldMultipleThings_Support
     {
         // ReSharper disable SuspiciousTypeConversion.Global
-        public static bool CapacityAt(ThingDef def, IntVec3 storeCell, Map map, out int capacity)
+        public static bool CapacityAt(Thing thing, IntVec3 storeCell, Map map, out int capacity)
         {
             capacity = 0;
 
@@ -15,26 +15,26 @@ namespace PickUpAndHaul
                .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
 
             if (compOfHolding is IHoldMultipleThings.IHoldMultipleThings holderOfThings)
-                return holderOfThings.CapacityAt(def, storeCell, map, out capacity);
+                return holderOfThings.CapacityAt(thing, storeCell, map, out capacity);
 
             foreach (Thing t in storeCell.GetThingList(map))
                 if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
-                    return holderOfMultipleThings.CapacityAt(def, storeCell, map, out capacity);
+                    return holderOfMultipleThings.CapacityAt(thing, storeCell, map, out capacity);
 
             return false;
         }
 
-        public static bool StackableAt(ThingDef def, IntVec3 storeCell, Map map)
+        public static bool StackableAt(Thing thing, IntVec3 storeCell, Map map)
         {
             var compOfHolding = (map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
                .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
 
             if (compOfHolding is IHoldMultipleThings.IHoldMultipleThings holderOfThings)
-                return holderOfThings.StackableAt(def, storeCell, map);
+                return holderOfThings.StackableAt(thing, storeCell, map);
 
             foreach (Thing t in storeCell.GetThingList(map))
                 if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
-                    return holderOfMultipleThings.StackableAt(def, storeCell, map);
+                    return holderOfMultipleThings.StackableAt(thing, storeCell, map);
 
             return false;
         }
