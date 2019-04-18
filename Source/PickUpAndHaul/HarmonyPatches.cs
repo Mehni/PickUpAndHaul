@@ -37,8 +37,10 @@ namespace PickUpAndHaul
             harmony.Patch(original: AccessTools.Method(typeof(JobGiver_Idle), "TryGiveJob"),
                 postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)));
 
-            Verse.Log.Message("PickUpAndHaul v0.1.0.5 welcomes you to RimWorld with pointless logspam.");
-            harmony.PatchAll();
+            harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), "DrawThingRow"),
+                transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
+
+            Verse.Log.Message("PickUpAndHaul v0.1.0.5¼ welcomes you to RimWorld with pointless logspam.", true);
         }
 
         private static bool Drop_Prefix(Pawn pawn, Thing thing)
@@ -49,11 +51,7 @@ namespace PickUpAndHaul
 
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
-            if (carriedThing.Contains(thing))
-            {
-                return false;
-            }
-            return true;
+            return !carriedThing.Contains(thing);
         }
 
         private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, Thing item)
@@ -63,7 +61,7 @@ namespace PickUpAndHaul
                 return;
 
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
-            if (carriedThing?.Count != 0)
+            if (carriedThing?.Count > 0)
             {
                 if (carriedThing.Contains(item))
                 {
@@ -111,15 +109,51 @@ namespace PickUpAndHaul
 
             foreach (CodeInstruction instruction in instructionList)
             {
-                if (!patched && instruction.operand == playerHome && !ModCompatibilityCheck.CombatExtendedIsActive) 
+                if (!patched && instruction.operand == playerHome && !ModCompatibilityCheck.CombatExtendedIsActive)
                 {
-                    instruction.opcode  = OpCodes.Ldc_I4_0;
+                    instruction.opcode = OpCodes.Ldc_I4_0;
                     instruction.operand = null;
                     yield return instruction;
                     patched = true;
                 }
                 yield return instruction;
             }
+        }
+
+        //ITab_Pawn_Gear
+        //private void DrawThingRow(ref float y, float width, Thing thing, bool inventory = false)
+        public static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator il, MethodBase mb)
+        {
+            MethodInfo WidgetsButtonImageInfo = AccessTools.Method(typeof(Widgets), "ButtonImage", new Type[] { typeof(Rect), typeof(Texture2D) });
+            MethodInfo WidgetsButtonImageColorInfo = AccessTools.Method(typeof(Widgets), "ButtonImage", new Type[] { typeof(Rect), typeof(Texture2D), typeof(Color) });
+
+            MethodInfo SelPawnForGearInfo = AccessTools.Property(typeof(ITab_Pawn_Gear), "SelPawnForGear").GetGetMethod(true);
+
+            MethodInfo GetColorForHauledInfo = AccessTools.Method(typeof(HarmonyPatches), nameof(GetColorForHauled));
+
+            bool done = false;
+            foreach (CodeInstruction i in instructions)
+            {
+                //if (Widgets.ButtonImage(rect2, TexButton.Drop))
+                if (!done && i.opcode == OpCodes.Call && i.operand == WidgetsButtonImageInfo)
+                {
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);                           //this
+                    yield return new CodeInstruction(OpCodes.Call, SelPawnForGearInfo);          //this.SelPawnForGearInfo
+                    yield return new CodeInstruction(OpCodes.Ldarg_3);                           //thing
+                    yield return new CodeInstruction(OpCodes.Call, GetColorForHauledInfo);       //GetColorForHauledInfo(Pawn, Thing)
+                    yield return new CodeInstruction(OpCodes.Call, WidgetsButtonImageColorInfo); //ButtonImage(rect, texture, color)
+                    done = true;
+                }
+                else
+                    yield return i;
+            }
+        }
+
+        private static Color GetColorForHauled(Pawn pawn, Thing thing)
+        {
+            if (pawn.GetComp<CompHauledToInventory>()?.GetHashSet().Contains(thing) ?? false)
+                return Color.Lerp(Color.grey, Color.red, 0.5f);
+            return Color.white;
         }
     }
 }

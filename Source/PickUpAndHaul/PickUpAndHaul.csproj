@@ -62,7 +62,6 @@
     <Compile Include="DebugLog.cs" />
     <Compile Include="IHoldMultipleThings_Support.cs" />
     <Compile Include="ExtendedStorage_Support.cs" />
-    <Compile Include="GearTabHighlight.cs" />
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="JobDriver_HaulToInventory.cs" />
     <Compile Include="JobDriver_UnloadYourHauledInventory.cs" />

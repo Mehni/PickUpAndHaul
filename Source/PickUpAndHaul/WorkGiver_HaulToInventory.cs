@@ -186,8 +186,7 @@ namespace PickUpAndHaul
             Log.Message($"Looking for more like {nextThing}");
 
             while ((nextThing = GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForUndefined(),
-                PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, null, haulables))    //8f hardcoded in CheckForGetOpportunityDuplicate
-                is Thing)
+                                    PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, null, haulables)) != null)
             {
                 haulables.Remove(nextThing);
                 carryCapacity -= nextThing.stackCount;
@@ -226,14 +225,14 @@ namespace PickUpAndHaul
 
             if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out capacity))
             {
-                Log.Message($"Found capacity of {capacity}");
+                Log.Message($"Found external capacity of {capacity}");
                 return capacity;
             }
 
             if (ExtendedStorage_Support.CapacityAt(thing, storeCell, map, out capacity))
+            {
                 return capacity;
-
-
+            }
 
             capacity = thing.def.stackLimit;
 
