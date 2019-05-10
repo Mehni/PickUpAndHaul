@@ -58,6 +58,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Class1.cs" />
     <Compile Include="CompHauledToInventory.cs" />
     <Compile Include="DebugLog.cs" />
     <Compile Include="IHoldMultipleThings_Support.cs" />
