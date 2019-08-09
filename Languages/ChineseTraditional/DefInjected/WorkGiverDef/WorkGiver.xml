@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+
+  <HaulToInventory.label>將物品放置或運輸</HaulToInventory.label>
+  <HaulToInventory.verb>運輸</HaulToInventory.verb>
+  <HaulToInventory.gerund>運輸中</HaulToInventory.gerund>
+
+
+</LanguageData>
