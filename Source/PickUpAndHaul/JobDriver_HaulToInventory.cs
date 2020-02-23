@@ -145,7 +145,7 @@
                     Job curJob = actor.jobs.curJob;
                     LocalTargetInfo storeCell = curJob.targetB;
 
-                    Job unloadJob = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
+                    Job unloadJob = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
                     if (unloadJob.TryMakePreToilReservations(actor, false))
                     {
                         actor.jobs.jobQueue.EnqueueFirst(unloadJob, JobTag.Misc);

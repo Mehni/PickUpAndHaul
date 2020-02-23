@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using RimWorld;
 using Verse;
 using UnityEngine;
-using Harmony;
+using HarmonyLib;
 using System.Reflection.Emit;
 using System.Reflection;
 using Verse.AI;
@@ -17,7 +16,7 @@ namespace PickUpAndHaul
     {
         static HarmonyPatches()
         {
-            HarmonyInstance harmony = HarmonyInstance.Create(id: "mehni.rimworld.pickupandhaul.main");
+            var harmony = new Harmony("mehni.rimworld.pickupandhaul.main");
 
             harmony.Patch(original: AccessTools.Method(typeof(FloatMenuMakerMap), "AddHumanlikeOrders"),
                 transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(FloatMenuMakerMad_AddHumanlikeOrders_Transpiler)));
@@ -109,7 +108,7 @@ namespace PickUpAndHaul
 
             foreach (CodeInstruction instruction in instructionList)
             {
-                if (!patched && instruction.operand == playerHome && !ModCompatibilityCheck.CombatExtendedIsActive)
+                if (!patched && instruction.operand as MethodInfo == playerHome && !ModCompatibilityCheck.CombatExtendedIsActive)
                 {
                     instruction.opcode = OpCodes.Ldc_I4_0;
                     instruction.operand = null;
@@ -122,7 +121,7 @@ namespace PickUpAndHaul
 
         //ITab_Pawn_Gear
         //private void DrawThingRow(ref float y, float width, Thing thing, bool inventory = false)
-        public static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator il, MethodBase mb)
+        public static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions)
         {
             MethodInfo WidgetsButtonImageInfo = AccessTools.Method(typeof(Widgets), "ButtonImage", new Type[] { typeof(Rect), typeof(Texture2D) });
             MethodInfo WidgetsButtonImageColorInfo = AccessTools.Method(typeof(Widgets), "ButtonImage", new Type[] { typeof(Rect), typeof(Texture2D), typeof(Color) });
@@ -135,7 +134,7 @@ namespace PickUpAndHaul
             foreach (CodeInstruction i in instructions)
             {
                 //if (Widgets.ButtonImage(rect2, TexButton.Drop))
-                if (!done && i.opcode == OpCodes.Call && i.operand == WidgetsButtonImageInfo)
+                if (!done && i.opcode == OpCodes.Call && i.operand as MethodInfo == WidgetsButtonImageInfo)
                 {
                     yield return new CodeInstruction(OpCodes.Ldarg_0);                           //this
                     yield return new CodeInstruction(OpCodes.Call, SelPawnForGearInfo);          //this.SelPawnForGearInfo

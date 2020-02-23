@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -91,7 +90,7 @@ namespace PickUpAndHaul
 
             if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
-            Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
+            Job job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
             Log.Message($"-------------------------------------------------------------------");
             Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
             Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
@@ -99,7 +98,7 @@ namespace PickUpAndHaul
             //Find extra things than can be hauled to inventory, queue to reserve them
             bool isUrgent = ModCompatibilityCheck.AllowToolIsActive && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-            Func<Thing, bool> validatorExtra = (Thing t) =>
+            bool validatorExtra(Thing t) =>
                 (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == haulUrgentlyDesignation) &&
                 GoodThingToHaul(t, pawn) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
 
@@ -221,16 +220,10 @@ namespace PickUpAndHaul
 
         public static int CapacityAt(Thing thing, IntVec3 storeCell, Map map)
         {
-            int capacity;
 
-            if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out capacity))
+            if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out int capacity))
             {
                 Log.Message($"Found external capacity of {capacity}");
-                return capacity;
-            }
-
-            if (ExtendedStorage_Support.CapacityAt(thing, storeCell, map, out capacity))
-            {
                 return capacity;
             }
 
@@ -246,8 +239,7 @@ namespace PickUpAndHaul
         public static bool Stackable(Thing nextThing, KeyValuePair<IntVec3, CellAllocation> allocation)
             => nextThing == allocation.Value.allocated
             || allocation.Value.allocated.CanStackWith(nextThing)
-            || HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key, nextThing.Map)
-            || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
+            || HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key, nextThing.Map);
 
         public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
         {
@@ -258,7 +250,7 @@ namespace PickUpAndHaul
             IntVec3 storeCell = allocation.Key;
 
             //Can't stack with allocated cells, find a new cell:
-            if (storeCell == default(IntVec3))
+            if (storeCell == default)
             {
                 StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
                 if (TryFindBestBetterStoreCellFor(nextThing, pawn, map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
@@ -326,7 +318,7 @@ namespace PickUpAndHaul
                 .Where(s => s.Settings.Priority > currentPriority && s.parent.Accepts(thing)))
             {
                 if (slotGroup.CellsList.Except(skipCells).FirstOrDefault(c => StoreUtility.IsGoodStoreCell(c, map, thing, carrier, faction)) is IntVec3 cell
-                    && cell != default(IntVec3))
+                    && cell != default)
                 {
                     foundCell = cell;
 
