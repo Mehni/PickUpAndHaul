@@ -5,7 +5,7 @@ using System.Text;
 using RimWorld;
 using Verse;
 using UnityEngine;
-using Harmony;
+using HarmonyLib;
 using System.Reflection.Emit;
 using System.Reflection;
 using Verse.AI;
@@ -17,7 +17,7 @@ namespace PickUpAndHaul
     {
         static HarmonyPatches()
         {
-            HarmonyInstance harmony = HarmonyInstance.Create(id: "mehni.rimworld.pickupandhaul.main");
+            Harmony harmony = new Harmony("mehni.rimworld.pickupandhaul.main");
 
             harmony.Patch(original: AccessTools.Method(typeof(FloatMenuMakerMap), "AddHumanlikeOrders"),
                 transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(FloatMenuMakerMad_AddHumanlikeOrders_Transpiler)));

@@ -3,12 +3,13 @@
 	<name>Pick Up And Haul</name>
 	<author>Mehni</author>
 	<supportedVersions>
-		<li>1.0</li>
+		<li>1.1</li>
 	</supportedVersions>
+	<packageId>Mehni.PUAH</packageId>
 	<url>https://ludeon.com/forums/index.php?topic=35832</url>
 	<description>"Greatest hauling mod ever" - Chicken Plucker
 
-	v.1.0.5
+	v.1.0.6
 	
 Colonists will gather stuff in their inventory, then haul it all to a stockpile.
 
