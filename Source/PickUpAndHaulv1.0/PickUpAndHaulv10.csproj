@@ -4,40 +4,42 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{CCF8350B-E3FD-4693-9209-681E9C089097}</ProjectGuid>
+    <ProjectGuid>{2480F13E-E9ED-44EC-A5DE-C821676904E7}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PickUpAndHaul</RootNamespace>
     <AssemblyName>PickUpAndHaul</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>false</DebugSymbols>
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\v1.1\Assemblies\</OutputPath>
+    <OutputPath>..\..\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\1.1\Assemblies\</OutputPath>
+    <OutputPath>..\..\Assemblies\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>..\..\..\..\..\..\workshop\content\294100\2009463077\Assemblies\0Harmony.dll</HintPath>
+    <Reference Include="0Harmony, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\..\..\..\Users\Maniak\Documents\RimWorld Mods\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ExtendedStorage">
+      <HintPath>..\..\..\..\..\..\workshop\content\294100\731732064\Assemblies\ExtendedStorage.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="IHoldMultipleThings, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -46,7 +48,6 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Runtime.InteropServices.RuntimeInformation" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
@@ -55,15 +56,12 @@
       <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CompHauledToInventory.cs" />
     <Compile Include="DebugLog.cs" />
     <Compile Include="IHoldMultipleThings_Support.cs" />
+    <Compile Include="ExtendedStorage_Support.cs" />
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="JobDriver_HaulToInventory.cs" />
     <Compile Include="JobDriver_UnloadYourHauledInventory.cs" />

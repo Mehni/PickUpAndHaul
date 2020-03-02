@@ -158,7 +158,7 @@ namespace PickUpAndHaul
                 }
                 return new ThingCount(thing, thing.stackCount);
             }
-            return default;
+            return default(ThingCount);
         }
     }
 }
