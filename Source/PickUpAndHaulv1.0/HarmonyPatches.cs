@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using RimWorld;
 using Verse;
 using UnityEngine;
-using HarmonyLib;
+using Harmony;
 using System.Reflection.Emit;
 using System.Reflection;
 using Verse.AI;
@@ -16,10 +17,7 @@ namespace PickUpAndHaul
     {
         static HarmonyPatches()
         {
-            var harmony = new Harmony("mehni.rimworld.pickupandhaul.main");
-#if DEBUG
-            Harmony.DEBUG = true;
-#endif
+            HarmonyInstance harmony = HarmonyInstance.Create(id: "mehni.rimworld.pickupandhaul.main");
 
             harmony.Patch(original: AccessTools.Method(typeof(FloatMenuMakerMap), "AddHumanlikeOrders"),
                 transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(FloatMenuMakerMad_AddHumanlikeOrders_Transpiler)));
@@ -42,7 +40,7 @@ namespace PickUpAndHaul
             harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), "DrawThingRow"),
                 transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
 
-            Verse.Log.Message("PickUpAndHaul v0.1.1.0⅓ welcomes you to RimWorld with pointless logspam.", true);
+            Verse.Log.Message("PickUpAndHaul v0.1.0.5¼ welcomes you to RimWorld with pointless logspam.", true);
         }
 
         private static bool Drop_Prefix(Pawn pawn, Thing thing)
@@ -103,6 +101,7 @@ namespace PickUpAndHaul
 
         public static IEnumerable<CodeInstruction> FloatMenuMakerMad_AddHumanlikeOrders_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
+
             MethodInfo playerHome = AccessTools.Property(typeof(Map), nameof(Map.IsPlayerHome)).GetGetMethod();
             List<CodeInstruction> instructionList = instructions.ToList();
 
@@ -110,7 +109,7 @@ namespace PickUpAndHaul
 
             foreach (CodeInstruction instruction in instructionList)
             {
-                if (!patched && instruction.Calls(playerHome) && !ModCompatibilityCheck.CombatExtendedIsActive)
+                if (!patched && instruction.operand == playerHome && !ModCompatibilityCheck.CombatExtendedIsActive)
                 {
                     instruction.opcode = OpCodes.Ldc_I4_0;
                     instruction.operand = null;
@@ -123,24 +122,26 @@ namespace PickUpAndHaul
 
         //ITab_Pawn_Gear
         //private void DrawThingRow(ref float y, float width, Thing thing, bool inventory = false)
-        public static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions)
+        public static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator il, MethodBase mb)
         {
+            MethodInfo WidgetsButtonImageInfo = AccessTools.Method(typeof(Widgets), "ButtonImage", new Type[] { typeof(Rect), typeof(Texture2D) });
+            MethodInfo WidgetsButtonImageColorInfo = AccessTools.Method(typeof(Widgets), "ButtonImage", new Type[] { typeof(Rect), typeof(Texture2D), typeof(Color) });
+
             MethodInfo SelPawnForGearInfo = AccessTools.Property(typeof(ITab_Pawn_Gear), "SelPawnForGear").GetGetMethod(true);
 
             MethodInfo GetColorForHauledInfo = AccessTools.Method(typeof(HarmonyPatches), nameof(GetColorForHauled));
 
-            MethodInfo ColorWhite = AccessTools.Property(typeof(Color), nameof(Color.white)).GetGetMethod();
-
             bool done = false;
             foreach (CodeInstruction i in instructions)
             {
-                //// Color color = flag ? Color.grey : Color.white;
-                if (!done && i.Calls(ColorWhite))
+                //if (Widgets.ButtonImage(rect2, TexButton.Drop))
+                if (!done && i.opcode == OpCodes.Call && i.operand == WidgetsButtonImageInfo)
                 {
                     yield return new CodeInstruction(OpCodes.Ldarg_0);                           //this
                     yield return new CodeInstruction(OpCodes.Call, SelPawnForGearInfo);          //this.SelPawnForGearInfo
                     yield return new CodeInstruction(OpCodes.Ldarg_3);                           //thing
                     yield return new CodeInstruction(OpCodes.Call, GetColorForHauledInfo);       //GetColorForHauledInfo(Pawn, Thing)
+                    yield return new CodeInstruction(OpCodes.Call, WidgetsButtonImageColorInfo); //ButtonImage(rect, texture, color)
                     done = true;
                 }
                 else
