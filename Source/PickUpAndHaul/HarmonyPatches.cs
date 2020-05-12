@@ -12,10 +12,9 @@ using Verse.AI;
 
 namespace PickUpAndHaul
 {
-    [StaticConstructorOnStartup]
-    static class HarmonyPatches
+    public class HarmonyPatches : Mod
     {
-        static HarmonyPatches()
+        public HarmonyPatches(ModContentPack content) : base(content)
         {
             HarmonyInstance harmony = HarmonyInstance.Create("mehni.rimworld.pickupandhaul.main");
 
@@ -66,7 +65,7 @@ namespace PickUpAndHaul
             //}
             //catch (TypeLoadException) { }
 
-            Verse.Log.Message("PickUpAndHaul v0.1.0.5 welcomes you to RimWorld with pointless logspam.");
+            //Log.Message("PickUpAndHaul v0.1.0.5 welcomes you to RimWorld with pointless logspam.");
             harmony.PatchAll();
         }
 

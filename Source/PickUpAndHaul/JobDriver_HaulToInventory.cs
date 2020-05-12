@@ -12,7 +12,7 @@ namespace PickUpAndHaul
     {
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
+            //Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
             this.pawn.ReserveAsManyAsPossible(this.job.targetQueueA, this.job);
             this.pawn.ReserveAsManyAsPossible(this.job.targetQueueB, this.job);
             return this.pawn.Reserve(this.job.targetQueueA[0], this.job) && pawn.Reserve(job.targetB, this.job);
@@ -52,7 +52,7 @@ namespace PickUpAndHaul
 
                     //get max we can pick up
                     int countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
-                    Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
+                    //Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
                     // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
@@ -72,7 +72,8 @@ namespace PickUpAndHaul
                     if (countToPickUp > 0)
                     {
                         Thing splitThing = thing.SplitOff(countToPickUp);
-                        actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, false);
+                        bool shouldMerge = takenToInventory.GetHashSet().Any(x => x.def == thing.def);
+                        actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
                         takenToInventory.RegisterHauledItem(splitThing);
 
                         try
@@ -114,13 +115,13 @@ namespace PickUpAndHaul
                     LocalTargetInfo storeCell = curJob.targetB;
 
                     List<Thing> haulables = actor.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
-                    WorkGiver_HaulToInventory haulMoreWork = actor.workSettings.WorkGiversInOrderNormal.First(wg => wg is WorkGiver_HaulToInventory) as WorkGiver_HaulToInventory;
+                    WorkGiver_HaulToInventory haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker as WorkGiver_HaulToInventory;
                     Thing haulMoreThing = GenClosest.ClosestThing_Global(actor.Position, haulables, 12, t => haulMoreWork.HasJobOnThing(actor, t, false));
 
                     //WorkGiver_HaulToInventory found more work nearby
                     if (haulMoreThing != null)
                     {
-                        Log.Message($"{actor} hauling again : {haulMoreThing}");
+                        //Log.Message($"{actor} hauling again : {haulMoreThing}");
                         Job haulMoreJob = haulMoreWork.JobOnThing(actor, haulMoreThing);
 
                         if (haulMoreJob.TryMakePreToilReservations(actor, false))
