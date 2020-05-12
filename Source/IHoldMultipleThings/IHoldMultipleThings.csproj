@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{CCF8350B-E3FD-4693-9209-681E9C089097}</ProjectGuid>
+    <ProjectGuid>{E1536A54-D289-41FA-9D0B-8A2F6812C7FA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>PickUpAndHaul</RootNamespace>
-    <AssemblyName>PickUpAndHaul</AssemblyName>
+    <RootNamespace>IHoldMultipleThings</RootNamespace>
+    <AssemblyName>IHoldMultipleThings</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -18,7 +18,7 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\v1.1\Assemblies\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -33,40 +33,24 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>..\..\..\..\..\..\workshop\content\294100\2009463077\Assemblies\0Harmony.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Runtime.InteropServices.RuntimeInformation" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CompHauledToInventory.cs" />
-    <Compile Include="DebugLog.cs" />
-    <Compile Include="IHoldMultipleThings_Support.cs" />
-    <Compile Include="HarmonyPatches.cs" />
-    <Compile Include="JobDriver_HaulToInventory.cs" />
-    <Compile Include="JobDriver_UnloadYourHauledInventory.cs" />
-    <Compile Include="ModCompatibilityCheck.cs" />
-    <Compile Include="PawnUnloadChecker.cs" />
-    <Compile Include="WorkGiver_HaulToInventory.cs" />
+    <Compile Include="IHoldMultipleThings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>

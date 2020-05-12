@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -9,7 +12,7 @@ namespace PickUpAndHaul
     {
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
-            Job job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
+            Job job = new Job(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
             if (itemsTakenToInventory == null)

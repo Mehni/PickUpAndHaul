@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -90,15 +91,15 @@ namespace PickUpAndHaul
 
             if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
-            Job job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
-            //Log.Message($"-------------------------------------------------------------------");
-            //Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
-            //Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
+            Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
+            Log.Message($"-------------------------------------------------------------------");
+            Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
+            Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
 
             //Find extra things than can be hauled to inventory, queue to reserve them
             bool isUrgent = ModCompatibilityCheck.AllowToolIsActive && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-            bool validatorExtra(Thing t) =>
+            Func<Thing, bool> validatorExtra = (Thing t) =>
                 (!isUrgent || pawn.Map.designationManager.DesignationOn(t)?.def == haulUrgentlyDesignation) &&
                 GoodThingToHaul(t, pawn) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false);//forced is false, may differ from first thing
 
@@ -156,7 +157,7 @@ namespace PickUpAndHaul
                     {
                         //can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
                         nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
-                        //Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+                        Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
                         break;
                     }
                 }
@@ -178,11 +179,11 @@ namespace PickUpAndHaul
             int carryCapacity = pawn.carryTracker.MaxStackSpaceEver(nextThing.def) - nextThingLeftOverCount;
             if (carryCapacity == 0)
             {
-                //Log.Message("Can't carry more, nevermind!");
+                Log.Message("Can't carry more, nevermind!");
                 skipCells = null;
                 return job;
             }
-            //Log.Message($"Looking for more like {nextThing}");
+            Log.Message($"Looking for more like {nextThing}");
 
             while ((nextThing = GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForUndefined(),
                                     PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, null, haulables)) != null)
@@ -197,7 +198,7 @@ namespace PickUpAndHaul
                 {
                     int lastCount = job.countQueue.Pop() + carryCapacity;
                     job.countQueue.Add(lastCount);
-                    //Log.Message($"Nevermind, last count is {lastCount}");
+                    Log.Message($"Nevermind, last count is {lastCount}");
                     break;
                 }
             }
@@ -220,15 +221,20 @@ namespace PickUpAndHaul
 
         public static int CapacityAt(Thing thing, IntVec3 storeCell, Map map)
         {
+            int capacity;
 
-            if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out int capacity))
+            if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out capacity))
             {
                 Log.Message($"Found external capacity of {capacity}");
                 return capacity;
             }
 
+            if (ExtendedStorage_Support.CapacityAt(thing, storeCell, map, out capacity))
+            {
+                return capacity;
+            }
+
             capacity = thing.def.stackLimit;
-            int capacity = def.stackLimit;
 
             Thing preExistingThing = map.thingGrid.ThingAt(storeCell, thing.def);
             if (preExistingThing != null)
@@ -239,7 +245,9 @@ namespace PickUpAndHaul
 
         public static bool Stackable(Thing nextThing, KeyValuePair<IntVec3, CellAllocation> allocation)
             => nextThing == allocation.Value.allocated
-            || allocation.Value.allocated.CanStackWith(nextThing);
+            || allocation.Value.allocated.CanStackWith(nextThing)
+            || HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key, nextThing.Map)
+            || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
 
         public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
         {
@@ -250,7 +258,7 @@ namespace PickUpAndHaul
             IntVec3 storeCell = allocation.Key;
 
             //Can't stack with allocated cells, find a new cell:
-            if (storeCell == default)
+            if (storeCell == default(IntVec3))
             {
                 StoragePriority currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
                 if (TryFindBestBetterStoreCellFor(nextThing, pawn, map, currentPriority, pawn.Faction, out IntVec3 nextStoreCell))
@@ -260,11 +268,11 @@ namespace PickUpAndHaul
 
                     storeCellCapacity[storeCell] = new CellAllocation(nextThing, CapacityAt(nextThing, storeCell, map));
 
-                    //Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
+                    Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
                 }
                 else
                 {
-                    //Log.Message($"{nextThing} can't stack with allocated cells");
+                    Log.Message($"{nextThing} can't stack with allocated cells");
 
                     if (job.targetQueueA.NullOrEmpty())
                         job.targetQueueA.Add(nextThing);
@@ -275,14 +283,14 @@ namespace PickUpAndHaul
             job.targetQueueA.Add(nextThing);
             int count = nextThing.stackCount;
             storeCellCapacity[storeCell].capacity -= count;
-            //Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
+            Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
 
             while (storeCellCapacity[storeCell].capacity <= 0)
             {
                 int capacityOver = -storeCellCapacity[storeCell].capacity;
                 storeCellCapacity.Remove(storeCell);
 
-                //Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
+                Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
                 if (capacityOver == 0)
                     break;  //don't find new cell, might not have more of this thing to haul
@@ -296,18 +304,18 @@ namespace PickUpAndHaul
                     int capacity = CapacityAt(nextThing, storeCell, map) - capacityOver;
                     storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacity);
 
-                    //Log.Message($"New cell {storeCell}:{capacity}, allocated extra {capacityOver}");
+                    Log.Message($"New cell {storeCell}:{capacity}, allocated extra {capacityOver}");
                 }
                 else
                 {
                     count -= capacityOver;
                     job.countQueue.Add(count);
-                    //Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
+                    Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
                     return false;
                 }
             }
             job.countQueue.Add(count);
-            //Log.Message($"{nextThing}:{count} allocated");
+            Log.Message($"{nextThing}:{count} allocated");
             return true;
         }
 
@@ -318,7 +326,7 @@ namespace PickUpAndHaul
                 .Where(s => s.Settings.Priority > currentPriority && s.parent.Accepts(thing)))
             {
                 if (slotGroup.CellsList.Except(skipCells).FirstOrDefault(c => StoreUtility.IsGoodStoreCell(c, map, thing, carrier, faction)) is IntVec3 cell
-                    && cell != default)
+                    && cell != default(IntVec3))
                 {
                     foundCell = cell;
 
