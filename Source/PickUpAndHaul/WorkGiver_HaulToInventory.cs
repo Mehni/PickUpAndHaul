@@ -223,7 +223,7 @@ namespace PickUpAndHaul
 
             if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out int capacity))
             {
-                Log.Message($"Found external capacity of {capacity}");
+                //Log.Message($"Found external capacity of {capacity}");
                 return capacity;
             }
 

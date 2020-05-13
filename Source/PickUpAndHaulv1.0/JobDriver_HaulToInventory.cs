@@ -12,7 +12,7 @@
     {
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-            Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
+            //Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
             pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
             pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
             return pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
@@ -52,7 +52,7 @@
 
                     //get max we can pick up
                     int countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
-                    Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
+                    //Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
 
                     // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
                     // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
@@ -120,7 +120,7 @@
                     //WorkGiver_HaulToInventory found more work nearby
                     if (haulMoreThing != null)
                     {
-                        Log.Message($"{pawn} hauling again : {haulMoreThing}");
+                        //Log.Message($"{pawn} hauling again : {haulMoreThing}");
                         Job haulMoreJob = haulMoreWork.JobOnThing(pawn, haulMoreThing);
 
                         if (haulMoreJob.TryMakePreToilReservations(pawn, false))

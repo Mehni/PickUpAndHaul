@@ -92,9 +92,9 @@ namespace PickUpAndHaul
             if (capacityStoreCell == 0) return HaulAIUtility.HaulToStorageJob(pawn, thing);
 
             Job job = new Job(PickUpAndHaulJobDefOf.HaulToInventory, null, storeCell);   //Things will be in queues
-            Log.Message($"-------------------------------------------------------------------");
-            Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
-            Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
+            //Log.Message($"-------------------------------------------------------------------");
+            //Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
+            //Log.Message($"{pawn} job found to haul: {thing} to {storeCell}:{capacityStoreCell}, looking for more now");
 
             //Find extra things than can be hauled to inventory, queue to reserve them
             bool isUrgent = ModCompatibilityCheck.AllowToolIsActive && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
@@ -157,7 +157,7 @@ namespace PickUpAndHaul
                     {
                         //can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
                         nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
-                        Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+                        //Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
                         break;
                     }
                 }
@@ -179,11 +179,11 @@ namespace PickUpAndHaul
             int carryCapacity = pawn.carryTracker.MaxStackSpaceEver(nextThing.def) - nextThingLeftOverCount;
             if (carryCapacity == 0)
             {
-                Log.Message("Can't carry more, nevermind!");
+                //Log.Message("Can't carry more, nevermind!");
                 skipCells = null;
                 return job;
             }
-            Log.Message($"Looking for more like {nextThing}");
+            //Log.Message($"Looking for more like {nextThing}");
 
             while ((nextThing = GenClosest.ClosestThingReachable(nextThing.Position, thing.Map, ThingRequest.ForUndefined(),
                                     PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, null, haulables)) != null)
@@ -198,7 +198,7 @@ namespace PickUpAndHaul
                 {
                     int lastCount = job.countQueue.Pop() + carryCapacity;
                     job.countQueue.Add(lastCount);
-                    Log.Message($"Nevermind, last count is {lastCount}");
+                    //Log.Message($"Nevermind, last count is {lastCount}");
                     break;
                 }
             }
@@ -255,11 +255,11 @@ namespace PickUpAndHaul
 
                     storeCellCapacity[storeCell] = new CellAllocation(nextThing, CapacityAt(nextThing, storeCell, map));
 
-                    Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
+                    //Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
                 }
                 else
                 {
-                    Log.Message($"{nextThing} can't stack with allocated cells");
+                    //Log.Message($"{nextThing} can't stack with allocated cells");
 
                     if (job.targetQueueA.NullOrEmpty())
                         job.targetQueueA.Add(nextThing);
@@ -270,14 +270,14 @@ namespace PickUpAndHaul
             job.targetQueueA.Add(nextThing);
             int count = nextThing.stackCount;
             storeCellCapacity[storeCell].capacity -= count;
-            Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
+            //Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
 
             while (storeCellCapacity[storeCell].capacity <= 0)
             {
                 int capacityOver = -storeCellCapacity[storeCell].capacity;
                 storeCellCapacity.Remove(storeCell);
 
-                Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
+                //Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
                 if (capacityOver == 0)
                     break;  //don't find new cell, might not have more of this thing to haul
@@ -291,18 +291,18 @@ namespace PickUpAndHaul
                     int capacity = CapacityAt(nextThing, storeCell, map) - capacityOver;
                     storeCellCapacity[storeCell] = new CellAllocation(nextThing, capacity);
 
-                    Log.Message($"New cell {storeCell}:{capacity}, allocated extra {capacityOver}");
+                    //Log.Message($"New cell {storeCell}:{capacity}, allocated extra {capacityOver}");
                 }
                 else
                 {
                     count -= capacityOver;
                     job.countQueue.Add(count);
-                    Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
+                    //Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
                     return false;
                 }
             }
             job.countQueue.Add(count);
-            Log.Message($"{nextThing}:{count} allocated");
+            //Log.Message($"{nextThing}:{count} allocated");
             return true;
         }
 
