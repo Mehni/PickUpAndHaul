@@ -30,9 +30,6 @@ namespace PickUpAndHaul
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
-            if (ModCompatibilityCheck.ExtendedStorageIsActive)
-                unloadDuration = 20;
-
             Toil wait = Toils_General.Wait(unloadDuration);
             Toil celebrate = Toils_General.Wait(unloadDuration);
 

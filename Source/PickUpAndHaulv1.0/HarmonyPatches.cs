@@ -40,7 +40,7 @@ namespace PickUpAndHaul
             harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), "DrawThingRow"),
                 transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
 
-            Verse.Log.Message("PickUpAndHaul v0.1.0.5¼ welcomes you to RimWorld with pointless logspam.", true);
+            Verse.Log.Message("PickUpAndHaul v0.1.1.0⅓ welcomes you to RimWorld with pointless logspam.", true);
         }
 
         private static bool Drop_Prefix(Pawn pawn, Thing thing)
@@ -101,7 +101,6 @@ namespace PickUpAndHaul
 
         public static IEnumerable<CodeInstruction> FloatMenuMakerMad_AddHumanlikeOrders_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-
             MethodInfo playerHome = AccessTools.Property(typeof(Map), nameof(Map.IsPlayerHome)).GetGetMethod();
             List<CodeInstruction> instructionList = instructions.ToList();
 

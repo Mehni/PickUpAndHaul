@@ -38,14 +38,6 @@
       <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="ExtendedStorage">
-      <HintPath>..\..\..\..\..\..\workshop\content\294100\731732064\Assemblies\ExtendedStorage.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="IHoldMultipleThings, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Assemblies\IHoldMultipleThings.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -60,8 +52,6 @@
   <ItemGroup>
     <Compile Include="CompHauledToInventory.cs" />
     <Compile Include="DebugLog.cs" />
-    <Compile Include="IHoldMultipleThings_Support.cs" />
-    <Compile Include="ExtendedStorage_Support.cs" />
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="JobDriver_HaulToInventory.cs" />
     <Compile Include="JobDriver_UnloadYourHauledInventory.cs" />

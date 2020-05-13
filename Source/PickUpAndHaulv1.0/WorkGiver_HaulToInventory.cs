@@ -223,17 +223,6 @@ namespace PickUpAndHaul
         {
             int capacity;
 
-            if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out capacity))
-            {
-                Log.Message($"Found external capacity of {capacity}");
-                return capacity;
-            }
-
-            if (ExtendedStorage_Support.CapacityAt(thing, storeCell, map, out capacity))
-            {
-                return capacity;
-            }
-
             capacity = thing.def.stackLimit;
 
             Thing preExistingThing = map.thingGrid.ThingAt(storeCell, thing.def);
@@ -245,9 +234,7 @@ namespace PickUpAndHaul
 
         public static bool Stackable(Thing nextThing, KeyValuePair<IntVec3, CellAllocation> allocation)
             => nextThing == allocation.Value.allocated
-            || allocation.Value.allocated.CanStackWith(nextThing)
-            || HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key, nextThing.Map)
-            || ExtendedStorage_Support.StackableAt(nextThing.def, allocation.Key, nextThing.Map);
+            || allocation.Value.allocated.CanStackWith(nextThing);
 
         public static bool AllocateThingAtCell(Dictionary<IntVec3, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
         {
@@ -340,7 +327,7 @@ namespace PickUpAndHaul
         }
 
         public static float AddedEnumberance(Pawn pawn, Thing thing)
-            => thing.stackCount * thing.GetStatValue(StatDefOf.Mass) / MassUtility.Capacity(pawn);
+            => thing.stackCount * thing.GetStatValue(StatDefOf.Mass, true) / MassUtility.Capacity(pawn);
 
         public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance)
             => (int)Math.Ceiling((encumberance - 1) * MassUtility.Capacity(pawn) / thing.GetStatValue(StatDefOf.Mass));
