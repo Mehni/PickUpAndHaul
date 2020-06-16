@@ -50,6 +50,11 @@ namespace PickUpAndHaul
 
             DesignationDef haulUrgentlyDesignation = DefDatabase<DesignationDef>.GetNamed("HaulUrgentlyDesignation", false);
 
+            // Misc. Robots compatibility 
+            // See https://github.com/catgirlfighter/RimWorld_CommonSense/blob/master/Source/CommonSense11/CommonSense/OpportunisticTasks.cs#L129-L140
+            if (pawn.TryGetComp<CompHauledToInventory>() == null) 
+                return null;
+
             //This WorkGiver gets hijacked by AllowTool and expects us to urgently haul corpses.
             if (ModCompatibilityCheck.AllowToolIsActive && thing is Corpse
                 && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
