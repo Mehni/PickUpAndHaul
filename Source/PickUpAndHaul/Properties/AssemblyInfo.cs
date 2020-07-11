@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("PickUpAndHaul")]
-[assembly: AssemblyCopyright("Copyright © Mehni 2018")]
+[assembly: AssemblyCopyright("Copyright © Mehni 2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
