@@ -42,14 +42,16 @@ namespace PickUpAndHaul
             harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), "DrawThingRow"),
                 transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
 
-            Verse.Log.Message("PickUpAndHaul v0.1.1.0⅓ welcomes you to RimWorld with pointless logspam.", true);
+            Verse.Log.Message("PickUpAndHaul v0.1.1.1⅓ welcomes you to RimWorld with pointless logspam.", true);
         }
 
         private static bool Drop_Prefix(Pawn pawn, Thing thing)
         {
             CompHauledToInventory takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null)
+            {
                 return true;
+            }
 
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
@@ -60,7 +62,9 @@ namespace PickUpAndHaul
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null)
+            {
                 return;
+            }
 
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
             if (carriedThing?.Count > 0)
@@ -76,7 +80,9 @@ namespace PickUpAndHaul
         {
             CompHauledToInventory takenToInventory = __instance.pawn.TryGetComp<CompHauledToInventory>();
             if (takenToInventory == null)
+            {
                 return;
+            }
 
             HashSet<Thing> carriedThing = takenToInventory.GetHashSet();
 
@@ -144,14 +150,19 @@ namespace PickUpAndHaul
                     done = true;
                 }
                 else
+                {
                     yield return i;
+                }
             }
         }
 
         private static Color GetColorForHauled(Pawn pawn, Thing thing)
         {
             if (pawn.GetComp<CompHauledToInventory>()?.GetHashSet().Contains(thing) ?? false)
+            {
                 return Color.Lerp(Color.grey, Color.red, 0.5f);
+            }
+
             return Color.white;
         }
     }

@@ -28,8 +28,7 @@
             Toil nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
             yield return nextTarget;
 
-            //honestly the workgiver checks for encumbered, so until CE checks are in this is unnecessary
-            //yield return CheckForOverencumbered();//Probably redundant without CE checks
+            yield return CheckForOverencumberedForCombatExtended();
 
             Toil gotoThing = new Toil
             {
@@ -54,20 +53,10 @@
                     int countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
                     Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
 
-                    // yo dawg, I heard you like delegates so I put delegates in your delegate, so you can delegate your delegates.
-                    // because compilers don't respect IF statements in delegates and toils are fully iterated over as soon as the job starts.
-                    try
+                    if (ModCompatibilityCheck.CombatExtendedIsActive)
                     {
-                        ((Action)(() =>
-                        {
-                            if (ModCompatibilityCheck.CombatExtendedIsActive)
-                            {
-                                //CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                //ceCompInventory.CanFitInInventory(thing, out countToPickUp);
-                            }
-                        }))();
+                        countToPickUp = CompatHelper.CanFitInInventory(pawn, thing);
                     }
-                    catch (TypeLoadException) { }
 
                     if (countToPickUp > 0)
                     {
@@ -76,19 +65,9 @@
                         actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
                         takenToInventory.RegisterHauledItem(splitThing);
 
-                        try
+                        if (ModCompatibilityCheck.CombatExtendedIsActive)
                         {
-                            ((Action)(() =>
-                                      {
-                                          if (ModCompatibilityCheck.CombatExtendedIsActive)
-                                          {
-                                               //CombatExtended.CompInventory ceCompInventory = actor.GetComp<CombatExtended.CompInventory>();
-                                               //ceCompInventory.UpdateInventory();
-                                           }
-                                      }))();
-                        }
-                        catch (TypeLoadException)
-                        {
+                            CompatHelper.UpdateInventory(pawn);
                         }
                     }
 
@@ -157,34 +136,28 @@
             yield return wait;
         }
 
-        public Toil CheckForOverencumbered()
+        /// <summary>
+        /// the workgiver checks for encumbered, this is purely extra for CE
+        /// </summary>
+        /// <returns></returns>
+        public Toil CheckForOverencumberedForCombatExtended()
         {
             Toil toil = new Toil();
+
+            if (!ModCompatibilityCheck.CombatExtendedIsActive)
+            {
+                return toil;
+            }
+
             toil.initAction = delegate
             {
                 Pawn actor = toil.actor;
                 Job curJob = actor.jobs.curJob;
                 Thing nextThing = curJob.targetA.Thing;
 
-                //float usedBulkByPct = 1f;
-                //float usedWeightByPct = 1f;
+                var ceOverweight = CompatHelper.CeOverweight(pawn);
 
-                //try
-                //{
-                //    ((Action)(() =>
-                //    {
-                //        if (ModCompatibilityCheck.CombatExtendedIsActive)
-                //        {
-                //            CompInventory ceCompInventory = actor.GetComp<CompInventory>();
-                //            usedWeightByPct = ceCompInventory.currentWeight / ceCompInventory.capacityWeight;
-                //            usedBulkByPct = ceCompInventory.currentBulk / ceCompInventory.capacityBulk;
-                //        }
-                //    }))();
-                //}
-                //catch (TypeLoadException) { }
-
-
-                if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f /*|| usedBulkByPct >= 0.7f || usedWeightByPct >= 0.8f*/))
+                if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f && !ceOverweight))
                 {
                     Job haul = HaulAIUtility.HaulToStorageJob(actor, nextThing);
                     if (haul?.TryMakePreToilReservations(actor, false) ?? false)
@@ -195,6 +168,7 @@
                     }
                 }
             };
+
             return toil;
         }
     }

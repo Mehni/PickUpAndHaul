@@ -13,14 +13,21 @@ namespace PickUpAndHaul
             CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
             if (itemsTakenToInventory == null)
+            {
                 return;
+            }
 
             HashSet<Thing> carriedThing = itemsTakenToInventory.GetHashSet();
 
             if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike)
+            {
                 return;
+            }
+
             if (carriedThing == null || carriedThing.Count == 0 || pawn.inventory.innerContainer.Count == 0)
+            {
                 return;
+            }
 
             if (forced)
             {

@@ -15,11 +15,17 @@ namespace PickUpAndHaul
                .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
 
             if (compOfHolding is IHoldMultipleThings.IHoldMultipleThings holderOfThings)
+            {
                 return holderOfThings.CapacityAt(thing, storeCell, map, out capacity);
+            }
 
             foreach (Thing t in storeCell.GetThingList(map))
+            {
                 if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
+                {
                     return holderOfMultipleThings.CapacityAt(thing, storeCell, map, out capacity);
+                }
+            }
 
             return false;
         }
@@ -30,11 +36,17 @@ namespace PickUpAndHaul
                .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
 
             if (compOfHolding is IHoldMultipleThings.IHoldMultipleThings holderOfThings)
+            {
                 return holderOfThings.StackableAt(thing, storeCell, map);
+            }
 
             foreach (Thing t in storeCell.GetThingList(map))
+            {
                 if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
+                {
                     return holderOfMultipleThings.StackableAt(thing, storeCell, map);
+                }
+            }
 
             return false;
         }

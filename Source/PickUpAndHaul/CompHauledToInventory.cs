@@ -12,10 +12,10 @@
             takenToInventory.RemoveWhere(x => x == null);
             return takenToInventory;
         }
-        
+
         public void RegisterHauledItem(Thing thing)
         {
-            this.takenToInventory.Add(thing);
+            takenToInventory.Add(thing);
         }
 
         public override void PostExposeData()

@@ -5,6 +5,7 @@
 	<supportedVersions>
 		<li>1.0</li>
 		<li>1.1</li>
+		<li>1.2</li>
 	</supportedVersions>
 	<packageId>Mehni.PickUpAndHaul</packageId>
 	<modDependenciesByVersion>
@@ -20,7 +21,7 @@
 	<url>https://ludeon.com/forums/index.php?topic=35832</url>
 	<description>"Greatest hauling mod ever" - Chicken Plucker
 
-	 v1.1.0⅓
+	 v1.1.1⅓
 
 Colonists will gather stuff in their inventory, then haul it all to a stockpile.
 
