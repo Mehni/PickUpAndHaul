@@ -139,7 +139,7 @@ namespace PickUpAndHaul
                 where carriedThings.Contains(t)
                 select t;
 
-            foreach (Thing thing in carriedThings.OrderBy(t => t.def.FirstThingCategory?.index).ThenBy(x => x.def))
+            foreach (Thing thing in carriedThings.OrderBy(t => t.def.FirstThingCategory?.index).ThenBy(x => x.def.defName))
             {
                 //merged partially picked up stacks get a different thingID in inventory
                 if (!potentialThingsToUnload.Contains(thing))
