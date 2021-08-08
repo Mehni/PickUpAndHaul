@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using RimWorld;
 using Verse;
 using UnityEngine;
@@ -21,8 +19,14 @@ namespace PickUpAndHaul
             Harmony.DEBUG = true;
 #endif
 
-            harmony.Patch(original: AccessTools.Method(typeof(FloatMenuMakerMap), "AddHumanlikeOrders"),
-                transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(FloatMenuMakerMad_AddHumanlikeOrders_Transpiler)));
+            if (!ModCompatibilityCheck.CombatExtendedIsActive)
+            {
+                harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.GetMaxAllowedToPickUp)),
+                    prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(MaxAllowedToPickUpPrefix)));
+
+                harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.CanPickUp)),
+                    prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(CanBeMadeToDropStuff)));
+            }
 
             harmony.Patch(original: AccessTools.Method(typeof(JobGiver_DropUnusedInventory), "TryGiveJob"),
                 postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(DropUnusedInventory_PostFix)));
@@ -42,7 +46,7 @@ namespace PickUpAndHaul
             harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), "DrawThingRow"),
                 transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
 
-            Verse.Log.Message("PickUpAndHaul v0.1.1.1⅓ welcomes you to RimWorld with pointless logspam.", true);
+            Verse.Log.Message("PickUpAndHaul v0.1.3.1⅓ welcomes you to RimWorld with pointless logspam.");
         }
 
         private static bool Drop_Prefix(Pawn pawn, Thing thing)
@@ -107,24 +111,16 @@ namespace PickUpAndHaul
             PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn);
         }
 
-        public static IEnumerable<CodeInstruction> FloatMenuMakerMad_AddHumanlikeOrders_Transpiler(IEnumerable<CodeInstruction> instructions)
+        public static bool MaxAllowedToPickUpPrefix(Pawn pawn, ThingDef thingDef, ref int __result)
         {
-            MethodInfo playerHome = AccessTools.Property(typeof(Map), nameof(Map.IsPlayerHome)).GetGetMethod();
-            List<CodeInstruction> instructionList = instructions.ToList();
+            __result = int.MaxValue;
+            return pawn.IsQuestLodger();
+        }
 
-            bool patched = false;
-
-            foreach (CodeInstruction instruction in instructionList)
-            {
-                if (!patched && instruction.Calls(playerHome) && !ModCompatibilityCheck.CombatExtendedIsActive)
-                {
-                    instruction.opcode = OpCodes.Ldc_I4_0;
-                    instruction.operand = null;
-                    yield return instruction;
-                    patched = true;
-                }
-                yield return instruction;
-            }
+        public static bool CanBeMadeToDropStuff(Pawn pawn, ThingDef thingDef, ref bool __result)
+        {
+            __result = !pawn.IsQuestLodger();
+            return false;
         }
 
         //ITab_Pawn_Gear

@@ -17,6 +17,7 @@ namespace PickUpAndHaul
         public override bool ShouldSkip(Pawn pawn, bool forced = false) => base.ShouldSkip(pawn, forced)
                 || pawn.Faction != Faction.OfPlayer
                 || !pawn.RaceProps.Humanlike
+                || pawn.IsQuestLodger()
                 || pawn.TryGetComp<CompHauledToInventory>() == null;
 
         public static bool GoodThingToHaul(Thing t, Pawn pawn) => t.Spawned
@@ -63,14 +64,16 @@ namespace PickUpAndHaul
                 return null;
             }
 
+            var pawnCanAutomaticallyHaulFast = HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced);
+
             //This WorkGiver gets hijacked by AllowTool and expects us to urgently haul corpses.
             if (ModCompatibilityCheck.AllowToolIsActive && thing is Corpse
-                && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+                && pawn.Map.designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation && pawnCanAutomaticallyHaulFast)
             {
                 return HaulAIUtility.HaulToStorageJob(pawn, thing);
             }
 
-            if (!GoodThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+            if (!GoodThingToHaul(thing, pawn) || !pawnCanAutomaticallyHaulFast)
             {
                 return null;
             }
