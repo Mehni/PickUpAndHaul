@@ -1,79 +1,58 @@
-﻿using System.Collections.Generic;
-using RimWorld;
-using Verse;
-using Verse.AI;
-
-namespace PickUpAndHaul
+﻿namespace PickUpAndHaul;
+public class PawnUnloadChecker
 {
-    public class PawnUnloadChecker
-    {
-        public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
-        {
-            Job job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
-            CompHauledToInventory itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+	public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
+	{
+		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
+		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
 
-            if (itemsTakenToInventory == null)
-            {
-                return;
-            }
+		if (itemsTakenToInventory == null)
+			return;
 
-            HashSet<Thing> carriedThing = itemsTakenToInventory.GetHashSet();
+		var carriedThing = itemsTakenToInventory.GetHashSet();
 
-            if (pawn.Faction != Faction.OfPlayer || !pawn.RaceProps.Humanlike)
-            {
-                return;
-            }
+		if (pawn.Faction != Faction.OfPlayerSilentFail || !Settings.IsAllowedRace(pawn.RaceProps)
+			|| carriedThing == null || carriedThing.Count == 0
+			|| pawn.inventory.innerContainer is not { } inventoryContainer || inventoryContainer.Count == 0)
+		{
+			return;
+		}
 
-            if (carriedThing == null || carriedThing.Count == 0 || pawn.inventory.innerContainer.Count == 0)
-            {
-                return;
-            }
+		if ((forced && job.TryMakePreToilReservations(pawn, false))
+			|| ((MassUtility.EncumbrancePercent(pawn) >= 0.90f || carriedThing.Count >= 1)
+			&& job.TryMakePreToilReservations(pawn, false)))
+		{
+			pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
+			return;
+		}
 
-            if (forced)
-            {
-                if (job.TryMakePreToilReservations(pawn, false))
-                {
-                    pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-                    return;
-                }
-            }
+		if (inventoryContainer.Count >= 1)
+		{
+			for (var i = 0; i < inventoryContainer.Count; i++)
+			{
+				var compRottable = inventoryContainer[i].TryGetComp<CompRottable>();
 
-            if (MassUtility.EncumbrancePercent(pawn) >= 0.90f || carriedThing.Count >= 1)
-            {
-                if (job.TryMakePreToilReservations(pawn, false))
-                {
-                    pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-                    return;
-                }
-            }
+				if (compRottable?.TicksUntilRotAtCurrentTemp < 30000)
+				{
+					pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
+					return;
+				}
+			}
+		}
 
-            if (pawn.inventory.innerContainer?.Count >= 1)
-            {
-                foreach (Thing rottable in pawn.inventory.innerContainer)
-                {
-                    CompRottable compRottable = rottable.TryGetComp<CompRottable>();
+		if (Find.TickManager.TicksGame % 50 == 0 && inventoryContainer.Count < carriedThing.Count)
+		{
+			Verse.Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
+			carriedThing.Clear();
+			pawn.inventory.UnloadEverything = true;
+		}
+	}
+}
 
-                    if (compRottable?.TicksUntilRotAtCurrentTemp < 30000)
-                    {
-                        pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-                        return;
-                    }
-                }
-            }
-
-            if (Find.TickManager.TicksGame % 50 == 0 && pawn.inventory.innerContainer.Count < carriedThing.Count)
-            {
-                Verse.Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
-                carriedThing.Clear();
-                pawn.inventory.UnloadEverything = true;
-            }
-        }
-    }
-
-    [DefOf]
-    public static class PickUpAndHaulJobDefOf
-    {
-        public static JobDef UnloadYourHauledInventory;
-        public static JobDef HaulToInventory;
-    }
+[DefOf]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Has to match defName")]
+public static class PickUpAndHaulJobDefOf
+{
+	public static JobDef UnloadYourHauledInventory;
+	public static JobDef HaulToInventory;
 }
