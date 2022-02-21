@@ -154,7 +154,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		do
 		{
-			if (AllocateThingAtStoreTarget(storeCellCapacity, pawn, nextThing, job))
+			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
 			{
 				lastThing = nextThing;
 				encumberance += AddedEncumberance(pawn, nextThing);
@@ -195,7 +195,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			carryCapacity -= nextThing.stackCount;
 
-			if (AllocateThingAtStoreTarget(storeCellCapacity, pawn, nextThing, job))
+			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
 				break;
 
 			if (carryCapacity <= 0)
@@ -338,7 +338,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| allocation.Value.allocated.CanStackWith(nextThing)
 		|| HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key.cell, nextThing.Map);
 
-	public static bool AllocateThingAtStoreTarget(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
+	public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
 	{
 		var map = pawn.Map;
 		var allocation = storeCellCapacity.FirstOrDefault(kvp =>
