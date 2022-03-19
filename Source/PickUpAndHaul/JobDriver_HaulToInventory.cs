@@ -113,7 +113,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				var curJob = actor.jobs.curJob;
 				var storeCell = curJob.targetB;
 
-				var unloadJob = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, storeCell);
+				var unloadJob = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, null, storeCell);
 				if (unloadJob.TryMakePreToilReservations(actor, false))
 				{
 					actor.jobs.jobQueue.EnqueueFirst(unloadJob, JobTag.Misc);

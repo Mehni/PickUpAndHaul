@@ -51,10 +51,10 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					}
 					else
 					{
-						job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-						job.SetTarget(TargetIndex.B, c);
-						_countToDrop = unloadableThing.Thing.stackCount;
-					}
+                        job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+						job.SetTarget(TargetIndex.C, c);
+						_countToDrop = unloadableThing.Count;
+                    }
 				}
 			}
 		};
@@ -68,19 +68,19 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				var thing = job.GetTarget(TargetIndex.A).Thing;
 				if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 				{
-					carriedThing.Remove(thing);
+                    carriedThing.Remove(thing);
 					pawn.jobs.curDriver.JumpToToil(wait);
 					return;
 				}
 				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
 				{
-					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
+                    pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
 					EndJobWith(JobCondition.Succeeded);
 					carriedThing.Remove(thing);
 				}
 				else
 				{
-					pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer, _countToDrop, out thing);
+                    pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer, _countToDrop, out thing);
 					job.count = _countToDrop;
 					job.SetTarget(TargetIndex.A, thing);
 					carriedThing.Remove(thing);
@@ -93,21 +93,53 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			}
 		};
 
-		if (TargetB.HasThing)
-		{
-			var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
-			yield return Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch);
-			yield return carryToContainer;
-			yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
-			yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
-		}
-		else
-		{
-			var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
-			yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.Touch);
-			yield return carryToCell;
-			yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
-		}
+        yield return new()
+        {
+            initAction = () =>
+            {
+                if (!TargetB.HasThing)
+                    return;
+
+                var thing = TargetA.Thing;
+                var thingOwner = TargetB.Thing.TryGetInnerInteractableThingOwner();
+                IHaulDestination oldHaulDestination = TargetB.Thing as IHaulDestination;
+                var needRefindDestination = 
+                    thingOwner == null || !thingOwner.CanAcceptAnyOf(thing, true) 
+                    || oldHaulDestination == null || !oldHaulDestination.Accepts(thing);
+                if (needRefindDestination)
+                {
+                    var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
+                    if (StoreUtility.TryFindBestBetterNonSlotGroupStorageFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out var haulDestination, true))
+                    {
+                        var destinationAsThing = haulDestination as Thing;
+                        var newThingOwner = destinationAsThing.TryGetInnerInteractableThingOwner();
+                        if (newThingOwner != null)
+                        {
+                            job.SetTarget(TargetIndex.B, destinationAsThing);
+                        }
+                    }
+                    else
+                    {
+                        pawn.carryTracker.innerContainer.TryDrop(thing, ThingPlaceMode.Near, thing.stackCount, out var _);
+                        EndJobWith(JobCondition.Succeeded);
+                    }
+                }
+            }
+        };
+
+        if (TargetB.HasThing)
+        {
+            var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
+            yield return carryToContainer;
+            yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
+            yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.None);
+        }
+        else
+        {
+            var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.C);
+            yield return carryToCell;
+            yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.C, carryToCell, true);
+        }
 
 		//If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
 		//We still gotta release though, mostly because of Extended Storage.

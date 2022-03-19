@@ -3,7 +3,7 @@ public class PawnUnloadChecker
 {
 	public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
 	{
-		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
+		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, null, pawn);
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
 
 		if (itemsTakenToInventory == null)
