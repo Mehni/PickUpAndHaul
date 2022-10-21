@@ -18,7 +18,9 @@ public class HoldMultipleThings_Support
 		foreach (var t in storeCell.GetThingList(map))
 		{
 			if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
+			{
 				return holderOfMultipleThings.CapacityAt(thing, storeCell, map, out capacity);
+			}
 		}
 
 		return false;
@@ -36,7 +38,9 @@ public class HoldMultipleThings_Support
 		foreach (var t in storeCell.GetThingList(map))
 		{
 			if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
+			{
 				return holderOfMultipleThings.StackableAt(thing, storeCell, map);
+			}
 		}
 
 		return false;

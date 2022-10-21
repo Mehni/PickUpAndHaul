@@ -7,7 +7,9 @@ public class PawnUnloadChecker
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
 
 		if (itemsTakenToInventory == null)
+		{
 			return;
+		}
 
 		var carriedThing = itemsTakenToInventory.GetHashSet();
 

@@ -24,7 +24,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		var carriedThing = takenToInventory.GetHashSet();
 
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
+		{
 			_unloadDuration = 20;
+		}
 
 		var wait = Toils_General.Wait(_unloadDuration);
 		var celebrate = Toils_General.Wait(_unloadDuration);
@@ -87,7 +89,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
-					CompatHelper.UpdateInventory(pawn);
+				{
+					 CompatHelper.UpdateInventory(pawn);
+				}
 
 				thing.SetForbidden(false, false);
 			}
@@ -146,7 +150,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				{
 					var dirtyStraggler = innerPawnContainer[i];
 					if (dirtyStraggler.def == stragglerDef)
+					{
 						return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
+					}
 				}
 			}
 			return new ThingCount(thing, thing.stackCount);

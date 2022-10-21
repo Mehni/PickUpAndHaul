@@ -29,7 +29,10 @@ public class Settings : ModSettings
 		ls.Label("PUAH.minimumFreeInventorySpace".Translate(), tooltip: "PUAH.minimumFreeInventorySpaceTooltip".Translate());
 		var newFreeInventorySpaceValue = Math.Round(ls.Slider(minimumFreeInventorySpace, 0, 100));
 		if (newFreeInventorySpaceValue != minimumFreeInventorySpace)
+		{
 			_maximumOccupiedCapacityToConsiderHauling = (float)Math.Round((100d - newFreeInventorySpaceValue) * 0.01, 2);
+		}
+
 		ls.End();
 	}
 

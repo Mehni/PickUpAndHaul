@@ -58,7 +58,9 @@ public static class FishTranspiler
 	public static IEnumerable<Container> FindLoadLocals(MethodBase method, Predicate<LocalVariableInfo> predicate)
 	{
 		foreach (var index in GetLocalIndices(method, predicate))
+		{
 			yield return new() { OpCode = GetLoadLocalOpCode(index), Operand = GetOperandFromIndex(index) };
+		}
 	}
 	public static Container FindLoadLocal(IEnumerable<CodeInstruction> codes, Type localType) => LoadLocal(GetLocalOperandsOrIndices(codes, c => c.Returns(localType)).First());
 	public static Container LoadLocal(object operand) => operand is LocalBuilder builder ? LoadLocal(builder) : LoadLocal((int)operand);
@@ -70,7 +72,9 @@ public static class FishTranspiler
 	public static IEnumerable<Container> FindStoreLocals(MethodBase method, Predicate<LocalVariableInfo> predicate)
 	{
 		foreach (var index in GetLocalIndices(method, predicate))
+		{
 			yield return new() { OpCode = GetStoreLocalOpCode(index), Operand = GetOperandFromIndex(index) };
+		}
 	}
 	public static Container FindStoreLocal(IEnumerable<CodeInstruction> codes, Type localType) => StoreLocal(GetLocalOperandsOrIndices(codes, c => c.Returns(localType)).First());
 	public static Container StoreLocal(object operand) => operand is LocalBuilder builder ? StoreLocal(builder) : StoreLocal((int)operand);
@@ -167,7 +171,9 @@ public static class FishTranspiler
 	public static IEnumerable<int> GetLocalIndices(IEnumerable<CodeInstruction> codes, Predicate<CodeInstruction> predicate)
 	{
 		foreach (var operand in GetLocalOperandsOrIndices(codes, predicate))
+		{
 			yield return operand is LocalBuilder builder ? builder.LocalIndex : (int)operand;
+		}
 	}
 	public static IEnumerable<int> GetLocalIndices(MethodBase method, Predicate<LocalVariableInfo> predicate)
 	{
@@ -175,7 +181,9 @@ public static class FishTranspiler
 		for (var i = 0; i < variables.Count; i++)
 		{
 			if (predicate(variables[i]))
+			{
 				yield return variables[i].LocalIndex;
+			}
 		}
 	}
 

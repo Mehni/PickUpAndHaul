@@ -44,7 +44,9 @@ public class JobDriver_HaulToInventory : JobDriver
 				Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
+				{
 					countToPickUp = CompatHelper.CanFitInInventory(pawn, thing);
+				}
 
 				if (countToPickUp > 0)
 				{
@@ -54,7 +56,9 @@ public class JobDriver_HaulToInventory : JobDriver
 					takenToInventory.RegisterHauledItem(splitThing);
 
 					if (ModCompatibilityCheck.CombatExtendedIsActive)
+					{
 						CompatHelper.UpdateInventory(pawn);
+					}
 				}
 
 				//thing still remains, so queue up hauling if we can + end the current job (smooth/instant transition)
@@ -136,7 +140,9 @@ public class JobDriver_HaulToInventory : JobDriver
 		var toil = new Toil();
 
 		if (!ModCompatibilityCheck.CombatExtendedIsActive)
+		{
 			return toil;
+		}
 
 		toil.initAction = () =>
 		{

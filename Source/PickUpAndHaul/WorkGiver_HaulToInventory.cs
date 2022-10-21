@@ -58,7 +58,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+		{
 			return null;
+		}
 
 		if (OverAllowedGearCapacity(pawn)
 			|| pawn.GetComp<CompHauledToInventory>() is null // Misc. Robots compatibility
@@ -81,9 +83,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				//since we've gone through all the effort of getting the loc, might as well use it.
 				//Don't multi-haul food to hoppers.
 				if (HaulToHopperJob(thing, targetCell, map))
+				{
 					return HaulAIUtility.HaulToStorageJob(pawn, thing);
+				}
 				else
+				{
 					storeTarget = new(targetCell);
+				}
 			}
 			else if (haulDestination is Thing destinationAsThing && (nonSlotGroupThingOwner = destinationAsThing.TryGetInnerInteractableThingOwner()) != null)
 			{
@@ -107,7 +113,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
 
 		if (capacityStoreCell == 0)
+		{
 			return HaulAIUtility.HaulToStorageJob(pawn, thing);
+		}
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory, null, storeTarget);   //Things will be in queues
 		Log.Message($"-------------------------------------------------------------------");
@@ -124,7 +132,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var ceOverweight = false;
 
 		if (ModCompatibilityCheck.CombatExtendedIsActive)
+		{
 			ceOverweight = CompatHelper.CeOverweight(pawn);
+		}
 
 		var distanceToHaul = (storeTarget.Position - thing.Position).LengthHorizontal * SEARCH_FOR_OTHERS_RANGE_FRACTION;
 		var distanceToSearchMore = Math.Max(12f, distanceToHaul);
@@ -148,9 +158,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		skipCells = new();
 		skipThings = new();
 		if (storeTarget.container != null)
+		{
 			skipThings.Add(storeTarget.container);
+		}
 		else
+		{
 			skipCells.Add(storeTarget.cell);
+		}
 
 		bool Validator(Thing t)
 			=> (!isUrgent || designationManager.DesignationOn(t)?.def == haulUrgentlyDesignation)
@@ -206,7 +220,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			carryCapacity -= nextThing.stackCount;
 
 			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+			{
 				break;
+			}
 
 			if (carryCapacity <= 0)
 			{
@@ -232,7 +248,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			for (var i = 0; i < thingList.Count; i++)
 			{
 				if (thingList[i].def == ThingDefOf.Hopper)
+				{
 					return true;
+				}
 			}
 		}
 		return false;
@@ -267,7 +285,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	public static Thing GetClosestAndRemove(IntVec3 center, Map map, List<Thing> searchSet, PathEndMode peMode, TraverseParms traverseParams, float maxDistance = 9999f, Predicate<Thing> validator = null)
 	{
 		if (searchSet == null || !searchSet.Any())
+		{
 			return null;
+		}
 
 		var maxDistanceSquared = maxDistance * maxDistance;
 
@@ -275,16 +295,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			searchSet.RemoveAt(i);
 			if (!closestThing.Spawned)
+			{
 				continue;
+			}
 
 			if ((center - closestThing.Position).LengthHorizontalSquared > maxDistanceSquared)
+			{
 				break;
+			}
 
 			if (!map.reachability.CanReach(center, closestThing, peMode, traverseParams))
+			{
 				continue;
+			}
 
 			if (validator == null || validator(closestThing))
+			{
 				return closestThing;
+			}
 		}
 
 		return null;
@@ -391,7 +419,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				Log.Message($"{nextThing} can't stack with allocated cells");
 
 				if (job.targetQueueA.NullOrEmpty())
+				{
 					job.targetQueueA.Add(nextThing);
+				}
 
 				return false;
 			}
@@ -410,7 +440,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
 			if (capacityOver == 0)
+			{
 				break;  //don't find new cell, might not have more of this thing to haul
+			}
 
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
 			if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
@@ -460,10 +492,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var storagePriority = StoragePriority.Unstored;
 		innerInteractableThingOwner = null;
 		if (TryFindBestBetterStoreCellFor(t, carrier, map, currentPriority, faction, out var foundCell2))
+		{
 			storagePriority = foundCell2.GetSlotGroup(map).Settings.Priority;
+		}
 
 		if (!TryFindBestBetterNonSlotGroupStorageFor(t, carrier, map, currentPriority, faction, out var haulDestination2))
+		{
 			haulDestination2 = null;
+		}
 
 		if (storagePriority == StoragePriority.Unstored && haulDestination2 == null)
 		{
@@ -478,12 +514,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			haulDestination = haulDestination2;
 
 			if (haulDestination2 is not Thing destinationAsThing)
+			{
 				Verse.Log.Error($"{haulDestination2} is not a valid Thing. Pick Up And Haul can't work with this");
+			}
 			else
+			{
 				innerInteractableThingOwner = destinationAsThing.TryGetInnerInteractableThingOwner();
+			}
 
 			if (innerInteractableThingOwner is null)
+			{
 				Verse.Log.Error($"{haulDestination2} gave null ThingOwner during lookup in Pick Up And Haul's WorkGiver_HaulToInventory");
+			}
+
 			return true;
 		}
 
@@ -499,7 +542,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			var slotGroup = haulDestinations[i];
 			if (slotGroup.Settings.Priority <= currentPriority || !slotGroup.parent.Accepts(thing))
+			{
 				continue;
+			}
 
 			var cellsList = slotGroup.CellsList;
 
@@ -507,7 +552,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			{
 				var cell = cellsList[j];
 				if (skipCells.Contains(cell))
+				{
 					continue;
+				}
+
 				if (StoreUtility.IsGoodStoreCell(cell, map, thing, carrier, faction) && cell != default)
 				{
 					foundCell = cell;
@@ -540,20 +588,28 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			var iHaulDestination = allHaulDestinationsListInPriorityOrder[i];
 
 			if (iHaulDestination is ISlotGroupParent || (iHaulDestination is Building_Grave && !t.CanBeBuried()))
+			{
 				continue;
+			}
 
 			var priority = iHaulDestination.GetStoreSettings().Priority;
 			if ((int)priority < (int)storagePriority || (acceptSamePriority && (int)priority < (int)currentPriority) || (!acceptSamePriority && (int)priority <= (int)currentPriority))
+			{
 				break;
+			}
 
 			float num2 = intVec.DistanceToSquared(iHaulDestination.Position);
 			if (num2 > num || !iHaulDestination.Accepts(t))
+			{
 				continue;
+			}
 
 			if (iHaulDestination is Thing thing)
 			{
 				if (skipThings.Contains(thing) || thing.Faction != faction)
+				{
 					continue;
+				}
 
 				if (carrier != null)
 				{
@@ -567,7 +623,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				else if (faction != null)
 				{
 					if (thing.IsForbidden(faction) || map.reservationManager.IsReservedByAnyoneOf(thing, faction))
+					{
 						continue;
+					}
 				}
 
 				skipThings.Add(thing);
