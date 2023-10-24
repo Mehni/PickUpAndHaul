@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 
 namespace PickUpAndHaul;
+
 public class JobDriver_UnloadYourHauledInventory : JobDriver
 {
 	private int _countToDrop = -1;
@@ -20,8 +21,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		var takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-		var carriedThing = takenToInventory.GetHashSet();
+		var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
 
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
@@ -36,9 +36,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				var unloadableThing = FirstUnloadableThing(pawn);
+				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
 
-				if (unloadableThing.Count == 0 && carriedThing.Count == 0)
+				if (unloadableThing.Count == 0 && carriedThings.Count == 0)
 				{
 					EndJobWith(JobCondition.Succeeded);
 				}
@@ -70,7 +70,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				var thing = job.GetTarget(TargetIndex.A).Thing;
 				if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 				{
-					carriedThing.Remove(thing);
+					carriedThings.Remove(thing);
 					pawn.jobs.curDriver.JumpToToil(wait);
 					return;
 				}
@@ -78,14 +78,14 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				{
 					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
 					EndJobWith(JobCondition.Succeeded);
-					carriedThing.Remove(thing);
+					carriedThings.Remove(thing);
 				}
 				else
 				{
 					pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer, _countToDrop, out thing);
 					job.count = _countToDrop;
 					job.SetTarget(TargetIndex.A, thing);
-					carriedThing.Remove(thing);
+					carriedThings.Remove(thing);
 				}
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
@@ -100,7 +100,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		if (TargetB.HasThing)
 		{
 			var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
-			yield return Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch);
 			yield return carryToContainer;
 			yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
 			yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
@@ -108,7 +107,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		else
 		{
 			var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
-			yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.Touch);
 			yield return carryToCell;
 			yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
 		}
@@ -130,10 +128,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		yield return celebrate;
 	}
 
-	private static ThingCount FirstUnloadableThing(Pawn pawn)
+	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
 	{
-		var itemsTakenToInventory = pawn.TryGetComp<CompHauledToInventory>();
-		var carriedThings = itemsTakenToInventory.GetHashSet();
 		var innerPawnContainer = pawn.inventory.innerContainer;
 
 		foreach (var thing in carriedThings.OrderBy(t => t.def.FirstThingCategory?.index).ThenBy(x => x.def.defName))
