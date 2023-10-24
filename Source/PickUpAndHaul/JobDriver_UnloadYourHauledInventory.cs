@@ -33,7 +33,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		yield return FindTargetOrDrop(carriedThings);
 		yield return Toils_Reserve.Reserve(TargetIndex.B);
 		yield return PullItemFromInventory(carriedThings, begin);
-
+		yield return VerifyContainerValidOrFindNew();
+		
 		var releaseReservation = ReleaseReservation();
 		var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
 
@@ -138,6 +139,45 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			}
 		};
 	}
+
+	private Toil VerifyContainerValidOrFindNew()
+	{
+		return new()
+		{
+			initAction = () =>
+			{
+				if (IsDestinationValidContainer())
+				{
+					return;
+				}
+
+				var carried = TargetA.Thing;
+				if (StoreUtility.TryFindBestBetterNonSlotGroupStorageFor(
+					    carried, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(carried),
+					    pawn.Faction, out var haulDestination, true))
+				{
+					var destinationAsThing = haulDestination as Thing;
+					if (destinationAsThing.TryGetInnerInteractableThingOwner() != null)
+					{
+						job.SetTarget(TargetIndex.B, destinationAsThing);
+					}
+				}
+				else
+				{
+					pawn.carryTracker.innerContainer.TryDrop(carried, ThingPlaceMode.Near, carried.stackCount,
+						out _);
+					EndJobWith(JobCondition.Succeeded);
+				}
+			}
+		};
+	}
+
+	private bool IsDestinationValidContainer()
+		=> TargetB.Thing.TryGetInnerInteractableThingOwner() is { } thingOwner
+		   && TargetA.Thing is var thing
+		   && thingOwner.CanAcceptAnyOf(thing, true)
+		   && TargetB.Thing is IHaulDestination haulDestination
+		   && haulDestination.Accepts(thing);
 
 	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
 	{
