@@ -28,13 +28,13 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			_unloadDuration = 20;
 		}
 
-		var wait = Toils_General.Wait(_unloadDuration);
+		var begin = Toils_General.Wait(_unloadDuration);
 		var celebrate = Toils_General.Wait(_unloadDuration);
 
-		yield return wait;
+		yield return begin;
 		yield return FindTargetOrDrop(carriedThings);
 		yield return Toils_Reserve.Reserve(TargetIndex.B);
-		yield return PullItemFromInventory(carriedThings, wait);
+		yield return PullItemFromInventory(carriedThings, begin);
 
 		if (TargetB.HasThing)
 		{
@@ -53,7 +53,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		//If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
 		//We still gotta release though, mostly because of Extended Storage.
 		yield return ReleaseReservation();
-		yield return Toils_Jump.Jump(wait);
+		yield return Toils_Jump.Jump(begin);
 		yield return celebrate;
 	}
 	private Toil ReleaseReservation() {
