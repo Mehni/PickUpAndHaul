@@ -32,38 +32,45 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		var celebrate = Toils_General.Wait(_unloadDuration);
 
 		yield return wait;
-		yield return new()
+		yield return FindTargetOrDrop(carriedThings);
+		yield return Toils_Reserve.Reserve(TargetIndex.B);
+		yield return PullItemFromInventory(carriedThings, wait);
+
+		if (TargetB.HasThing)
 		{
-			initAction = () =>
-			{
-				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
+			var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
+			yield return carryToContainer;
+			yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
+			yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
+		}
+		else
+		{
+			var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
+			yield return carryToCell;
+			yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
+		}
 
-				if (unloadableThing.Count == 0 && carriedThings.Count == 0)
-				{
-					EndJobWith(JobCondition.Succeeded);
-				}
+		//If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
+		//We still gotta release though, mostly because of Extended Storage.
+		yield return ReleaseReservation();
+		yield return Toils_Jump.Jump(wait);
+		yield return celebrate;
+	}
+	private Toil ReleaseReservation() {
 
-				if (unloadableThing.Count != 0)
-				{
-					//StoragePriority currentPriority = StoreUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
-					if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, pawn, out var c))
-					{
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near, unloadableThing.Thing.stackCount, out var _);
-						EndJobWith(JobCondition.Succeeded);
-					}
-					else
-					{
-						job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-						job.SetTarget(TargetIndex.B, c);
-						_countToDrop = unloadableThing.Thing.stackCount;
-					}
+		return new() {
+			initAction = () => {
+				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
+				    && !ModCompatibilityCheck.HCSKIsActive) {
+					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 				}
 			}
 		};
+	}
 
-		yield return Toils_Reserve.Reserve(TargetIndex.B);
-
-		yield return new()
+	private Toil PullItemFromInventory(HashSet<Thing> carriedThings, Toil wait)
+	{
+		return new()
 		{
 			initAction = () =>
 			{
@@ -82,7 +89,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 				else
 				{
-					pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer, _countToDrop, out thing);
+					pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
+						_countToDrop, out thing);
 					job.count = _countToDrop;
 					job.SetTarget(TargetIndex.A, thing);
 					carriedThings.Remove(thing);
@@ -90,42 +98,45 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
 				{
-					 CompatHelper.UpdateInventory(pawn);
+					CompatHelper.UpdateInventory(pawn);
 				}
 
 				thing.SetForbidden(false, false);
 			}
 		};
+	}
 
-		if (TargetB.HasThing)
-		{
-			var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
-			yield return carryToContainer;
-			yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
-			yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
-		}
-		else
-		{
-			var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
-			yield return carryToCell;
-			yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
-		}
-
-		//If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
-		//We still gotta release though, mostly because of Extended Storage.
-		yield return new()
+	private Toil FindTargetOrDrop(HashSet<Thing> carriedThings)
+	{
+		return new()
 		{
 			initAction = () =>
 			{
-				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
-				 && !ModCompatibilityCheck.HCSKIsActive)
+				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
+
+				if (unloadableThing.Count == 0 && carriedThings.Count == 0)
 				{
-					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
+					EndJobWith(JobCondition.Succeeded);
+				}
+
+				if (unloadableThing.Count != 0)
+				{
+					//StoragePriority currentPriority = StoreUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
+					if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, pawn, out var c))
+					{
+						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+							unloadableThing.Thing.stackCount, out var _);
+						EndJobWith(JobCondition.Succeeded);
+					}
+					else
+					{
+						job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+						job.SetTarget(TargetIndex.B, c);
+						_countToDrop = unloadableThing.Thing.stackCount;
+					}
 				}
 			}
 		};
-		yield return Toils_Jump.Jump(wait);
-		yield return celebrate;
 	}
 
 	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
