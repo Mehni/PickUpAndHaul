@@ -21,40 +21,40 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
-
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
 			_unloadDuration = 20;
 		}
 
 		var begin = Toils_General.Wait(_unloadDuration);
-		var celebrate = Toils_General.Wait(_unloadDuration);
-
 		yield return begin;
+
+		var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
 		yield return FindTargetOrDrop(carriedThings);
 		yield return Toils_Reserve.Reserve(TargetIndex.B);
 		yield return PullItemFromInventory(carriedThings, begin);
 
-		if (TargetB.HasThing)
-		{
-			var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
-			yield return carryToContainer;
-			yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
-			yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
-		}
-		else
-		{
-			var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
-			yield return carryToCell;
-			yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
-		}
+		var releaseReservation = ReleaseReservation();
+		var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
+
+		// Equivalent to if (TargetB.HasThing)
+		yield return Toils_Jump.JumpIf(carryToCell, () => !TargetB.HasThing);
+
+		var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
+		yield return carryToContainer;
+		yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
+		yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
+		// Equivalent to jumping out of the else block
+		yield return Toils_Jump.Jump(releaseReservation);
+
+		// Equivalent to else
+		yield return carryToCell;
+		yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
 
 		//If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
 		//We still gotta release though, mostly because of Extended Storage.
-		yield return ReleaseReservation();
+		yield return releaseReservation;
 		yield return Toils_Jump.Jump(begin);
-		yield return celebrate;
 	}
 	private Toil ReleaseReservation() {
 
