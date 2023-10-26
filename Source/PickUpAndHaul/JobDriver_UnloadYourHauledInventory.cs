@@ -31,10 +31,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 		var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
 		yield return FindTargetOrDrop(carriedThings);
-		yield return Toils_Reserve.Reserve(TargetIndex.B);
 		yield return PullItemFromInventory(carriedThings, begin);
 		yield return VerifyContainerValidOrFindNew();
-		
+
 		var releaseReservation = ReleaseReservation();
 		var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
 
@@ -126,13 +125,19 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, pawn, out var c))
 					{
 						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out var _);
+							unloadableThing.Thing.stackCount, out _);
 						EndJobWith(JobCondition.Succeeded);
 					}
 					else
 					{
 						job.SetTarget(TargetIndex.A, unloadableThing.Thing);
 						job.SetTarget(TargetIndex.B, c);
+						if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+						{
+							pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+								unloadableThing.Thing.stackCount, out _);
+							EndJobWith(JobCondition.Incompletable);
+						}
 						_countToDrop = unloadableThing.Thing.stackCount;
 					}
 				}
@@ -159,7 +164,14 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					var destinationAsThing = haulDestination as Thing;
 					if (destinationAsThing.TryGetInnerInteractableThingOwner() != null)
 					{
+						pawn.Map.reservationManager.Release(job.targetB, pawn, job);
 						job.SetTarget(TargetIndex.B, destinationAsThing);
+						if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+						{
+							pawn.carryTracker.innerContainer.TryDrop(carried, ThingPlaceMode.Near, carried.stackCount,
+								out _);
+							EndJobWith(JobCondition.Incompletable);
+						}
 					}
 				}
 				else
