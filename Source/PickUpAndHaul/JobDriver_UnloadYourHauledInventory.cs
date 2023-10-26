@@ -32,7 +32,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
 		yield return FindTargetOrDrop(carriedThings);
 		yield return PullItemFromInventory(carriedThings, begin);
-		yield return VerifyContainerValidOrFindNew();
 
 		var releaseReservation = ReleaseReservation();
 		var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
@@ -56,12 +55,16 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		yield return releaseReservation;
 		yield return Toils_Jump.Jump(begin);
 	}
-	private Toil ReleaseReservation() {
+	private Toil ReleaseReservation()
+	{
 
-		return new() {
-			initAction = () => {
+		return new()
+		{
+			initAction = () =>
+			{
 				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
-				    && !ModCompatibilityCheck.HCSKIsActive) {
+				    && !ModCompatibilityCheck.HCSKIsActive)
+				{
 					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 				}
 			}
@@ -115,86 +118,52 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			{
 				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
 
-				if (unloadableThing.Count == 0 && carriedThings.Count == 0)
+				if (unloadableThing.Count == 0)
 				{
-					EndJobWith(JobCondition.Succeeded);
-				}
-
-				if (unloadableThing.Count != 0)
-				{
-					//StoragePriority currentPriority = StoreUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
-					if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, pawn, out var c))
+					if (carriedThings.Count == 0)
 					{
-						Log.Message($"Pawn {pawn} unable of finding hauling destination, dropping {unloadableThing.Thing}");
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out _);
 						EndJobWith(JobCondition.Succeeded);
 					}
-					else
-					{
-						job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-						job.SetTarget(TargetIndex.B, c);
-						if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
-						{
-							Log.Message($"Pawn {pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-							pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-								unloadableThing.Thing.stackCount, out _);
-							EndJobWith(JobCondition.Incompletable);
-						}
-						_countToDrop = unloadableThing.Thing.stackCount;
-					}
-				}
-			}
-		};
-	}
-
-	private Toil VerifyContainerValidOrFindNew()
-	{
-		return new()
-		{
-			initAction = () =>
-			{
-				if (IsDestinationValidContainer())
-				{
 					return;
 				}
 
-				var carried = TargetA.Thing;
-				if (StoreUtility.TryFindBestBetterNonSlotGroupStorageFor(
-					    carried, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(carried),
-					    pawn.Faction, out var haulDestination, true))
+				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
+				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
+					    pawn.Faction, out var cell, out var destination))
 				{
-					var destinationAsThing = haulDestination as Thing;
-					if (destinationAsThing.TryGetInnerInteractableThingOwner() != null)
+					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+					if (cell == IntVec3.Invalid)
 					{
-						pawn.Map.reservationManager.Release(job.targetB, pawn, job);
-						job.SetTarget(TargetIndex.B, destinationAsThing);
-						if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
-						{
-							Log.Message($"Pawn {pawn} failed reserving renewed destination {job.targetB}, dropping {carried}");
-							pawn.carryTracker.innerContainer.TryDrop(carried, ThingPlaceMode.Near, carried.stackCount,
-								out _);
-							EndJobWith(JobCondition.Incompletable);
-						}
+						job.SetTarget(TargetIndex.B, destination as Thing);
 					}
+					else
+					{
+						job.SetTarget(TargetIndex.B, cell);
+					}
+
+					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+					{
+						Log.Message(
+							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+							unloadableThing.Thing.stackCount, out _);
+						EndJobWith(JobCondition.Incompletable);
+						return;
+					}
+					_countToDrop = unloadableThing.Thing.stackCount;
 				}
 				else
 				{
-					Log.Message($"Pawn {pawn} needed new destination but failed to find one, dropping {carried}");
-					pawn.carryTracker.innerContainer.TryDrop(carried, ThingPlaceMode.Near, carried.stackCount,
-						out _);
+					Log.Message(
+						$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
+					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+						unloadableThing.Thing.stackCount, out _);
 					EndJobWith(JobCondition.Succeeded);
 				}
 			}
 		};
 	}
-
-	private bool IsDestinationValidContainer()
-		=> TargetB.Thing.TryGetInnerInteractableThingOwner() is { } thingOwner
-		   && TargetA.Thing is var thing
-		   && thingOwner.CanAcceptAnyOf(thing, true)
-		   && TargetB.Thing is IHaulDestination haulDestination
-		   && haulDestination.Accepts(thing);
 
 	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
 	{
