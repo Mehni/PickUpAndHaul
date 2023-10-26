@@ -83,6 +83,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
 				{
+					Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
 					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
 					EndJobWith(JobCondition.Succeeded);
 					carriedThings.Remove(thing);
@@ -124,6 +125,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					//StoragePriority currentPriority = StoreUtility.StoragePriorityAtFor(pawn.Position, unloadableThing.Thing);
 					if (!StoreUtility.TryFindStoreCellNearColonyDesperate(unloadableThing.Thing, pawn, out var c))
 					{
+						Log.Message($"Pawn {pawn} unable of finding hauling destination, dropping {unloadableThing.Thing}");
 						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 							unloadableThing.Thing.stackCount, out _);
 						EndJobWith(JobCondition.Succeeded);
@@ -134,6 +136,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						job.SetTarget(TargetIndex.B, c);
 						if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
 						{
+							Log.Message($"Pawn {pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
 							pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 								unloadableThing.Thing.stackCount, out _);
 							EndJobWith(JobCondition.Incompletable);
@@ -168,6 +171,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						job.SetTarget(TargetIndex.B, destinationAsThing);
 						if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
 						{
+							Log.Message($"Pawn {pawn} failed reserving renewed destination {job.targetB}, dropping {carried}");
 							pawn.carryTracker.innerContainer.TryDrop(carried, ThingPlaceMode.Near, carried.stackCount,
 								out _);
 							EndJobWith(JobCondition.Incompletable);
@@ -176,6 +180,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 				else
 				{
+					Log.Message($"Pawn {pawn} needed new destination but failed to find one, dropping {carried}");
 					pawn.carryTracker.innerContainer.TryDrop(carried, ThingPlaceMode.Near, carried.stackCount,
 						out _);
 					EndJobWith(JobCondition.Succeeded);
