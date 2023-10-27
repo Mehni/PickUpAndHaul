@@ -37,7 +37,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
 
 		// Equivalent to if (TargetB.HasThing)
-		yield return Toils_Jump.JumpIf(carryToCell, () => !TargetB.HasThing);
+		yield return Toils_Jump.JumpIf(carryToCell, TargetIsCell);
 
 		var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
 		yield return carryToContainer;
@@ -55,9 +55,11 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		yield return releaseReservation;
 		yield return Toils_Jump.Jump(begin);
 	}
+
+	private bool TargetIsCell() => !TargetB.HasThing;
+
 	private Toil ReleaseReservation()
 	{
-
 		return new()
 		{
 			initAction = () =>
