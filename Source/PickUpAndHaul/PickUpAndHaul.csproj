@@ -22,10 +22,10 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<Publicize Include="Assembly-CSharp" />
-		<!--<Reference Include="CombatExtended">
-			<HintPath>..\..\..\1631756268\Assemblies\CombatExtended.dll</HintPath>
-			<Private>False</Private>
-		</Reference>-->
+    <Reference Include="CombatExtended">
+      <HintPath>..\..\..\2890901044\Assemblies\CombatExtended.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
 		<Reference Include="IHoldMultipleThings">
 		  <HintPath>..\..\1.4\Assemblies\IHoldMultipleThings.dll</HintPath>
 		</Reference>
