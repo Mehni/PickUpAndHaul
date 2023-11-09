@@ -15,11 +15,11 @@
 		<WarningLevel>5</WarningLevel>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.4.3522-beta" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.4.3901" />
 		<PackageReference Include="Lib.Harmony" Version="2.2.2" ExcludeAssets="runtime" />
 		<PackageReference Include="Krafs.Publicizer" Version="2.0.1">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<Publicize Include="Assembly-CSharp" />
 		<!--<Reference Include="CombatExtended">
@@ -27,7 +27,7 @@
 			<Private>False</Private>
 		</Reference>-->
 		<Reference Include="IHoldMultipleThings">
-		  <HintPath>..\..\1.4\Assemblies\IHoldMultipleThings.dll</HintPath>
+			<HintPath>..\..\1.4\Assemblies\IHoldMultipleThings.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 </Project>
