@@ -45,7 +45,7 @@ static class HarmonyPatches
 		harmony.Patch(AccessTools.Method(typeof(JobGiver_Haul), nameof(JobGiver_Haul.TryGiveJob)),
 			transpiler: new(typeof(HarmonyPatches), nameof(JobGiver_Haul_TryGiveJob_Transpiler)));
 
-		Verse.Log.Message("PickUpAndHaul v0.1.3.2⅔ welcomes you to RimWorld with pointless logspam.");
+		Verse.Log.Message("PickUpAndHaul v1.1.2 welcomes you to RimWorld with pointless logspam.");
 	}
 
 	private static bool Drop_Prefix(Pawn pawn, Thing thing)
