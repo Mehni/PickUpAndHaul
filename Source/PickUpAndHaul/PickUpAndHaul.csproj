@@ -9,13 +9,13 @@
 		<Optimize>true</Optimize>
 		<DebugType>none</DebugType>
 		<ErrorReport>prompt</ErrorReport>
-		<OutputPath>..\..\1.4\Assemblies\</OutputPath>
+		<OutputPath>..\..\1.5\Assemblies\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<PublicizeAsReferenceAssemblies>false</PublicizeAsReferenceAssemblies>
 		<WarningLevel>5</WarningLevel>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.4.3901" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4062" />
 		<PackageReference Include="Lib.Harmony" Version="2.2.2" ExcludeAssets="runtime" />
 		<PackageReference Include="Krafs.Publicizer" Version="2.0.1">
 			<PrivateAssets>all</PrivateAssets>
@@ -27,7 +27,7 @@
 			<Private>False</Private>
 		</Reference>-->
 		<Reference Include="IHoldMultipleThings">
-			<HintPath>..\..\1.4\Assemblies\IHoldMultipleThings.dll</HintPath>
+			<HintPath>..\..\1.5\Assemblies\IHoldMultipleThings.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 </Project>
