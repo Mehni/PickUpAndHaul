@@ -64,8 +64,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
-				    && !ModCompatibilityCheck.HCSKIsActive)
+				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
 				{
 					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 				}

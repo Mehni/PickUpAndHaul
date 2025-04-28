@@ -11,5 +11,5 @@ public static class ModCompatibilityCheck
 		|| ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Extended Storage")
 		|| ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Core SK");
 
-	public static bool HCSKIsActive { get; } = ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Core SK");
+	//public static bool HCSKIsActive { get; } = ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Core SK");
 }
