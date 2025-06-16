@@ -5,7 +5,7 @@ public class JobDriver_HaulToInventory : JobDriver
 {
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
+		//Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
 		pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
 		pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
 		return pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
@@ -41,7 +41,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 				//get max we can pick up
 				var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
-				Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
+				//Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
 				{
@@ -65,7 +65,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				//This will technically release the reservations in the queue, but what can you do
 				if (thing.Spawned)
 				{
-					var haul = HaulAIUtility.HaulToStorageJob(actor, thing);
+					var haul = HaulAIUtility.HaulToStorageJob(actor, thing, actor.CurJob != null ? actor.CurJob.playerForced : false);
 					if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 					{
 						actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
@@ -93,7 +93,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				//WorkGiver_HaulToInventory found more work nearby
 				if (haulMoreThing != null)
 				{
-					Log.Message($"{pawn} hauling again : {haulMoreThing}");
+					//Log.Message($"{pawn} hauling again : {haulMoreThing}");
 					if (haulMoreJob.TryMakePreToilReservations(pawn, false))
 					{
 						pawn.jobs.jobQueue.EnqueueFirst(haulMoreJob, JobTag.Misc);
@@ -154,7 +154,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 			if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f && !ceOverweight))
 			{
-				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing);
+				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing, actor.CurJob != null ? actor.CurJob.playerForced : false);
 				if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 				{
 					//note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE

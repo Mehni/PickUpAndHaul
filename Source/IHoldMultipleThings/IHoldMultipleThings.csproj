@@ -15,6 +15,11 @@
 		<WarningLevel>5</WarningLevel>
 	</PropertyGroup>
 	<ItemGroup>
+	  <Reference Include="Assembly-CSharp">
+	    <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+	  </Reference>
+	</ItemGroup><!--
+	<ItemGroup>
 		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4409" />
-	</ItemGroup>
+	</ItemGroup>-->
 </Project>

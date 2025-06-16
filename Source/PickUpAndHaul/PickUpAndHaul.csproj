@@ -9,25 +9,49 @@
 		<Optimize>true</Optimize>
 		<DebugType>none</DebugType>
 		<ErrorReport>prompt</ErrorReport>
-		<OutputPath>..\..\1.5\Assemblies\</OutputPath>
+		<OutputPath>..\..\1.6\Assemblies\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<PublicizeAsReferenceAssemblies>false</PublicizeAsReferenceAssemblies>
 		<WarningLevel>5</WarningLevel>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4409" />
+		<!--<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.9297-beta" />-->
 		<PackageReference Include="Lib.Harmony" Version="2.3.6" ExcludeAssets="runtime" />
 		<PackageReference Include="Krafs.Publicizer" Version="2.0.1">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<Publicize Include="Assembly-CSharp" />
+		<Reference Include="Assembly-CSharp">
+		  <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+    <Private>false</Private>
+		</Reference>
 		<!--<Reference Include="CombatExtended">
 			<HintPath>..\..\..\1631756268\Assemblies\CombatExtended.dll</HintPath>
 			<Private>False</Private>
 		</Reference>-->
 		<Reference Include="IHoldMultipleThings">
-			<HintPath>..\..\1.5\Assemblies\IHoldMultipleThings.dll</HintPath>
+			<HintPath>..\..\1.6\Assemblies\IHoldMultipleThings.dll</HintPath>
+		</Reference>
+		<Reference Include="mscorlib">
+		  <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\mscorlib.dll</HintPath>
+    <Private>false</Private>
+		</Reference>
+  <Reference Include="UnityEngine">
+		  <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
+    <Private>false</Private>
+  </Reference>
+		<Reference Include="UnityEngine.CoreModule">
+		  <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    <Private>false</Private>
+  </Reference>
+		<Reference Include="UnityEngine.IMGUIModule">
+		  <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+    <Private>false</Private>
+		</Reference>
+		<Reference Include="UnityEngine.TextRenderingModule">
+		  <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    <Private>false</Private>
 		</Reference>
 	</ItemGroup>
 </Project>

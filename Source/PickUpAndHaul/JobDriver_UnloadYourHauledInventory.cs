@@ -87,7 +87,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
 				{
-					Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
+					//Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
 					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
 					EndJobWith(JobCondition.Succeeded);
 					carriedThings.Remove(thing);
@@ -130,7 +130,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
 				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					    pawn.Faction, out var cell, out var destination))
+					pawn.Faction, out var cell, out var destination))
 				{
 					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
 					if (cell == IntVec3.Invalid)
@@ -142,11 +142,11 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						job.SetTarget(TargetIndex.B, cell);
 					}
 
-					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+					//Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
 					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
 					{
-						Log.Message(
-							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+						//Log.Message(
+						//	$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
 						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 							unloadableThing.Thing.stackCount, out _);
 						EndJobWith(JobCondition.Incompletable);
@@ -156,8 +156,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 				else
 				{
-					Log.Message(
-						$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
+					//Log.Message(
+					//	$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
 					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
 					EndJobWith(JobCondition.Succeeded);
