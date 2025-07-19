@@ -32,8 +32,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		var list = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
 		Comparer.rootCell = pawn.Position;
-		list.OrderBy(i => Comparer.Compare(i, pawn));
-		return list;
+		return list.OrderBy(i => Comparer.Compare(i, pawn));
 	}
 
 	private static ThingPositionComparer Comparer { get; } = new();
