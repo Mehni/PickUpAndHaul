@@ -64,8 +64,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
-				    && !ModCompatibilityCheck.HCSKIsActive)
+				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
 				{
 					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 				}
@@ -131,7 +130,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
 				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					    pawn.Faction, out var cell, out var destination))
+						pawn.Faction, out var cell, out var destination))
 				{
 					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
 					if (cell == IntVec3.Invalid)

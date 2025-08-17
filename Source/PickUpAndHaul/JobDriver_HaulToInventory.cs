@@ -65,7 +65,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				//This will technically release the reservations in the queue, but what can you do
 				if (thing.Spawned)
 				{
-					var haul = HaulAIUtility.HaulToStorageJob(actor, thing);
+					var haul = HaulAIUtility.HaulToStorageJob(actor, thing, actor.CurJob.playerForced);
 					if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 					{
 						actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
@@ -154,7 +154,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 			if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f && !ceOverweight))
 			{
-				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing);
+				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing, curJob.playerForced);
 				if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 				{
 					//note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
