@@ -362,15 +362,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return capacity;
 		}
 
-		capacity = thing.def.stackLimit;
-
-		var preExistingThing = map.thingGrid.ThingAt(storeCell, thing.def);
-		if (preExistingThing != null)
-		{
-			capacity = thing.def.stackLimit - preExistingThing.stackCount;
-		}
-
-		return capacity;
+		return storeCell.GetItemStackSpaceLeftFor(map, thing.def);
 	}
 
 	public static bool Stackable(Thing nextThing, KeyValuePair<StoreTarget, CellAllocation> allocation)
@@ -495,7 +487,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			storagePriority = foundCell2.GetSlotGroup(map).Settings.Priority;
 		}
-
+		
 		if (!TryFindBestBetterNonSlotGroupStorageFor(t, carrier, map, currentPriority, faction, out var haulDestination2))
 		{
 			haulDestination2 = null;
