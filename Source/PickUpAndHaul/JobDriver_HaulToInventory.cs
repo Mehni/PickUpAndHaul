@@ -3,6 +3,17 @@
 namespace PickUpAndHaul;
 public class JobDriver_HaulToInventory : JobDriver
 {
+	private static WorkGiver_HaulToInventory worker;
+	public static WorkGiver_HaulToInventory Worker
+	{
+		get
+		{
+			return worker ??=
+				DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker
+					as WorkGiver_HaulToInventory;
+		}
+	}
+
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
 		Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
@@ -11,27 +22,54 @@ public class JobDriver_HaulToInventory : JobDriver
 		return pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
 	}
 
-	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		var takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
+		var getNextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A);
+		
+		// do
+		{
+			// get next item
+			yield return getNextTarget;
+			// bail if we are too heavy
+			yield return CheckForOverencumberedForCombatExtended();
+			// walk to the thing
+			yield return GotoTarget();
+			// place it in our inventory
+			yield return PickupTarget();
+		}
+		// while 
+		yield return Toils_Jump.JumpIf(getNextTarget, () => !job.targetQueueA.NullOrEmpty());
 
-		var wait = Toils_General.Wait(2);
+		// search for more items around the pawns current position to haul (in case new items spawned while we were 
+		// hauling), and queue up a new haul job if we find one.
+		yield return SearchMoreHaulables();
 
-		var nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
-		yield return nextTarget;
+		// queue up unload inventory job to happen immediately after the current job, ends the job.
+		yield return EnqueueUnloadJob();
+	}
 
-		yield return CheckForOverencumberedForCombatExtended();
+	private static List<Thing> TempListForThings { get; } = new();
 
+	// Make the pawn path to the next `Thing` pointed to by `TargetA`
+	public Toil GotoTarget()
+	{
 		var gotoThing = new Toil
 		{
 			initAction = () => pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch),
 			defaultCompleteMode = ToilCompleteMode.PatherArrival
 		};
 		gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
-		yield return gotoThing;
+		
+		return gotoThing;
+	}
 
-		var takeThing = new Toil
+	// Make the pawn pick up the `Thing` pointed to by `TargetA`. 
+	//	pre: The pawn must be at a cell, where they can touch `TargetA`
+	public Toil PickupTarget()
+	{
+		var inventoryComp = pawn.TryGetComp<CompHauledToInventory>();
+		
+		return new Toil
 		{
 			initAction = () =>
 			{
@@ -51,9 +89,9 @@ public class JobDriver_HaulToInventory : JobDriver
 				if (countToPickUp > 0)
 				{
 					var splitThing = thing.SplitOff(countToPickUp);
-					var shouldMerge = takenToInventory.GetHashSet().Any(x => x.def == thing.def);
+					var shouldMerge = inventoryComp.GetHashSet().Any(x => x.def == thing.def);
 					actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
-					takenToInventory.RegisterHauledItem(splitThing);
+					inventoryComp.RegisterHauledItem(splitThing);
 
 					if (ModCompatibilityCheck.CombatExtendedIsActive)
 					{
@@ -69,26 +107,27 @@ public class JobDriver_HaulToInventory : JobDriver
 					if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 					{
 						actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
+						EndJobWith(JobCondition.Succeeded);
 					}
-					actor.jobs.curDriver.JumpToToil(wait);
 				}
 			}
 		};
-		yield return takeThing;
-		yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty());
+	}
 
-		//Find more to haul, in case things spawned while this was in progess
-		yield return new Toil
+	// Search around the pawns current position for more haulables to haul to our inventory. 
+	public Toil SearchMoreHaulables()
+	{
+		return new Toil
 		{
 			initAction = () =>
 			{
 				var haulables = TempListForThings;
 				haulables.Clear();
 				haulables.AddRange(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
-				var haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker as WorkGiver_HaulToInventory;
+				
 				Job haulMoreJob = null;
 				var haulMoreThing = WorkGiver_HaulToInventory.GetClosestAndRemove(pawn.Position, pawn.Map, haulables, PathEndMode.ClosestTouch,
-					   TraverseParms.For(pawn), 12, t => (haulMoreJob = haulMoreWork.JobOnThing(pawn, t)) != null);
+					TraverseParms.For(pawn), 12, t => (haulMoreJob = Worker.JobOnThing(pawn, t)) != null);
 
 				//WorkGiver_HaulToInventory found more work nearby
 				if (haulMoreThing != null)
@@ -102,14 +141,11 @@ public class JobDriver_HaulToInventory : JobDriver
 				}
 			}
 		};
+	}
 
-		//maintain cell reservations on the trip back
-		//TODO: do that when we carry things
-		//I guess that means TODO: implement carrying the rest of the items in this job instead of falling back on HaulToStorageJob
-		yield return TargetB.HasThing ? Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch)
-			: Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
-
-		yield return new Toil //Queue next job
+	public Toil EnqueueUnloadJob()
+	{
+		return new Toil //Queue next job
 		{
 			initAction = () =>
 			{
@@ -126,10 +162,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				}
 			}
 		};
-		yield return wait;
 	}
-
-	private static List<Thing> TempListForThings { get; } = new();
 
 	/// <summary>
 	/// the workgiver checks for encumbered, this is purely extra for CE
