@@ -7,7 +7,7 @@
 		<LangVersion>10.0</LangVersion>
 		<PlatformTarget>AnyCPU</PlatformTarget>
 		<Optimize>true</Optimize>
-		<DebugType>none</DebugType>
+		<DebugType>full</DebugType>
 		<ErrorReport>prompt</ErrorReport>
 		<OutputPath>..\..\1.6\Assemblies\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
