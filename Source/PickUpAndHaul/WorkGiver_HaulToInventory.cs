@@ -74,8 +74,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var map = pawn.Map;
 		var designationManager = map.designationManager;
 		var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
-		ThingOwner nonSlotGroupThingOwner = null;
+		var storeCellCapacity = new Dictionary<StoreTarget, CellAllocation>();
 		StoreTarget storeTarget;
+		
+		ThingOwner nonSlotGroupThingOwner = null;
 		if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, true))
 		{
 			if (haulDestination is ISlotGroupParent)
@@ -89,11 +91,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				else
 				{
 					storeTarget = new(targetCell);
+					storeCellCapacity[storeTarget] = new CellAllocation(targetCell, map);
 				}
 			}
 			else if (haulDestination is Thing destinationAsThing && (nonSlotGroupThingOwner = destinationAsThing.TryGetInnerInteractableThingOwner()) != null)
 			{
 				storeTarget = new(destinationAsThing);
+				storeCellCapacity[storeTarget] = new CellAllocation(nonSlotGroupThingOwner);
 			}
 			else
 			{
@@ -150,10 +154,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var nextThing = thing;
 		var lastThing = thing;
 
-		var storeCellCapacity = new Dictionary<StoreTarget, CellAllocation>()
-		{
-			[storeTarget] = new(nextThing, capacityStoreCell)
-		};
 		//skipTargets = new() { storeTarget };
 		skipCells = new();
 		skipThings = new();
@@ -185,7 +185,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
 					job.countQueue.Pop();
 					job.countQueue.Add(nextThingLeftOverCount);
-					Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+					Log.Message($"{pawn} inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
 
 					// We are now out of inventory space - and should bail right away.
 					break;
@@ -303,15 +303,194 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return closestThing;
 	}
 
+	// We effectively need to store a structure which looks like the below:
+	// struct Cell { List<List<Thing, Count>> stacks; }
+	// Where each `List<Thing, Count>` represents a stack of things which can be stored in a single cell, i.e. multiple
+	// partial stacks, i.e. `Meat x33, Meat x20, ...`. This can happen in the case we are intending on hauling to a 
+	// building, but haven't reached there yet.
+	// We need another list, because a single `Cell` can contain multiple stacks, in the case of storage buildings.
 	public class CellAllocation
 	{
-		public Thing allocated;
-		public int capacity;
-
-		public CellAllocation(Thing a, int c)
+		private struct Cell
 		{
-			allocated = a;
-			capacity = c;
+			public int id;
+			public Thing thing;
+			public int count;
+			
+			public Cell(int id, Thing thing)
+			{
+				this.id = id;
+				this.thing = thing;
+				this.count = thing.stackCount;
+			}
+
+			public Cell(int id, Thing thing, int count)
+			{
+				this.id = id;
+				this.thing = thing;
+				this.count = count;
+			}
+		}
+		
+		// How many item stacks we can fit in a particular cell. i.e. storage buildings this can be > 1 - must be at 
+		// least equal to one.
+		private int maximumAllowedStacks;
+		private int freeCells;
+		
+		// The existing items which have space on the map, plus the items which we would like to haul ontop of them, 
+		// elements are removed from this list when there is not enough space to haul ontop of them.
+		
+		// invariant: cells with the same `id` must be next to each other in `desiredContents`
+		private List<Cell> desiredContents;
+		private int cid;
+		
+		public CellAllocation(IntVec3 cell, Map map)
+		{
+			maximumAllowedStacks = cell.GetMaxItemsAllowedInCell(map);
+			freeCells = maximumAllowedStacks;
+			desiredContents = new List<Cell>();
+			cid = 0;
+			
+			var thingList = cell.GetThingList(map);
+			foreach (var thing in thingList)
+			{
+				// if its a building, or plant we don't care - if its a stack, but its full - we don't care either.
+				if (thing.def.category != ThingCategory.Item || thing.def.stackLimit == thing.stackCount) { continue; }
+
+				// We have a partial stack we can add to, potentially
+				desiredContents.Add(new Cell(cid, thing));
+				// this still takes a cell slot in the storage
+				freeCells -= 1;
+				// if we have multiple partial stacks, we need to differentiate them.
+				cid += 1;
+			}
+		}
+
+		public CellAllocation(ThingOwner thingOwner)
+		{
+			maximumAllowedStacks = thingOwner.maxStacks;
+			freeCells = maximumAllowedStacks - thingOwner.Count;
+			desiredContents = new List<Cell>();
+			cid = 0;
+
+			for (int i = 0; i < thingOwner.Count; ++i)
+			{
+				var thing = thingOwner.GetAt(i);
+				if (thing.stackCount < thing.def.stackLimit)
+				{
+					desiredContents.Add(new Cell(cid, thing));
+				}
+			}
+		}
+
+		// Returns the `stackCount` of the `thing` which did not fit in `this`. 
+		public int TryStoreThing(Thing thing, int storeAmount)
+		{
+			// How much of the item we need to store, this gets updated as we allocate bits of space.
+			var requestedStorageAmount = storeAmount;
+			
+			// Stage 1 - Try merge with existing stacks:
+			int cellCapacity = thing.def.stackLimit;
+			bool cellCanStore = true;
+			for (int i = 0; i < desiredContents.Count; ++i)
+			{
+				var cell = desiredContents[i];
+				if (cell.thing.def != thing.def)
+				{
+					continue;
+				}
+
+				cellCapacity -= cell.count;
+				cellCanStore &= cell.thing.CanStackWith(thing);
+				
+				// If our next slot is not pertaining to our current cell
+				if (i + 1 == desiredContents.Count || cell.id != desiredContents[i + 1].id)
+				{
+					if (cellCanStore)
+					{
+						var storedCount = Math.Min(requestedStorageAmount, cellCapacity);
+						requestedStorageAmount -= storedCount;
+
+						// We have fully utilized the slot represented by `cell.id`. We need to remove all partial
+						// stakcs that reference `cell.id` from our list.
+						if (storedCount == cellCapacity)
+						{
+							var fullyUtilisedCellId = cell.id;
+							
+							// Walk backwards destroying cells which are now considered full. 
+							while (i >= 0 && desiredContents[i].id == fullyUtilisedCellId) {
+								desiredContents.RemoveAt(i);
+								i -= 1;
+							} 							
+						}
+						else // We have added to `cell.id` - but not yet completely utilised it, we need to track our addition
+						{
+							desiredContents.Insert(i + 1, new Cell(cell.id, thing, storedCount));
+						}
+
+						// If we have satisfied our storage request - we can bail. 
+						if (requestedStorageAmount == 0)
+						{
+							return 0;
+						}
+					}
+
+					cellCapacity = thing.def.stackLimit;
+					cellCanStore = true;
+				}
+			}
+			
+			// Stage 2 - Allocate a new stack from the storage if possible. 
+			if (freeCells > 0)
+			{
+				freeCells -= 1;
+				
+				// If we are not storing an entire stack, we need to store the partial amount we are storing, so we can
+				// fully use the cell.
+				if (requestedStorageAmount != thing.def.stackLimit)
+				{
+					desiredContents.Add(new Cell(cid, thing, requestedStorageAmount));
+					++cid;
+				}
+
+				return 0;
+			}
+			
+			return requestedStorageAmount;
+		}
+
+		public bool IsStackable(Thing thing)
+		{
+			if (freeCells > 0)
+			{
+				return true;
+			}
+			
+			bool stacksWith = true;
+			for (int i = 0; i < desiredContents.Count; ++i)
+			{
+				var cell = desiredContents[i];
+				if (cell.thing.def != thing.def)
+				{
+					continue;
+				}
+				
+				stacksWith &= cell.thing.CanStackWith(thing);
+				
+				// If our next slot is not pertaining to our current cell
+				if (i + 1 == desiredContents.Count || cell.id != desiredContents[i + 1].id)
+				{
+					// If `thing` stacks with each thing for `cell.id` - we can add ontop of it. 
+					if (stacksWith)
+					{
+						return true;
+					}
+					
+					stacksWith = true;
+				}
+			}
+
+			return false;
 		}
 	}
 
@@ -327,8 +506,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	}
 
 	public static bool Stackable(Thing nextThing, KeyValuePair<StoreTarget, CellAllocation> allocation)
-		=> nextThing == allocation.Value.allocated
-		|| allocation.Value.allocated.CanStackWith(nextThing)
+		=> allocation.Value.IsStackable(nextThing)
 		|| HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key.cell, nextThing.Map);
 
 	public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
@@ -341,10 +519,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			&& Stackable(nextThing, kvp));
 		var storeCell = allocation.Key;
 
+		var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
+		
 		//Can't stack with allocated cells, find a new cell:
 		if (storeCell == default)
 		{
-			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
 			if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
 			{
 				if (innerInteractableThingOwner is null)
@@ -352,9 +531,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					storeCell = new(nextStoreCell);
 					job.targetQueueB.Add(nextStoreCell);
 
-					storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
-
-					Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
+					storeCellCapacity[storeCell] = new(nextStoreCell, map);
+					Log.Message($"{pawn} found new cell for unstackable {nextThing} = {nextStoreCell}");
 				}
 				else
 				{
@@ -362,9 +540,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					storeCell = new(destinationAsThing);
 					job.targetQueueB.Add(destinationAsThing);
 
-					storeCellCapacity[storeCell] = new(nextThing, innerInteractableThingOwner.GetCountCanAccept(nextThing));
-
-					Log.Message($"New haulDestination for unstackable {nextThing} = {haulDestination}");
+					storeCellCapacity[storeCell] = new(innerInteractableThingOwner);
+					Log.Message($"{pawn} found new haulDestination for unstackable {nextThing} = {haulDestination}");
 				}
 			}
 			else
@@ -381,23 +558,16 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		job.targetQueueA.Add(nextThing);
+
 		var count = nextThing.stackCount;
-		storeCellCapacity[storeCell].capacity -= count;
-		Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
+		Log.Message($"{pawn} allocating {nextThing}:{count}");
 
-		while (storeCellCapacity[storeCell].capacity <= 0)
+		var remaining = storeCellCapacity[storeCell].TryStoreThing(nextThing, count);
+		Log.Message($"{pawn} allocated {nextThing}:{count - remaining} in {storeCell}");
+		
+		// If we have any remaining items we need to store, we need to look for a new location to store this item.
+		while (remaining > 0)
 		{
-			var capacityOver = -storeCellCapacity[storeCell].capacity;
-			storeCellCapacity.Remove(storeCell);
-
-			Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
-
-			if (capacityOver == 0)
-			{
-				break;  //don't find new cell, might not have more of this thing to haul
-			}
-
-			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
 			if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
 			{
 				if (innerInteractableThingOwner is null)
@@ -405,34 +575,34 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					storeCell = new(nextStoreCell);
 					job.targetQueueB.Add(nextStoreCell);
 
-					var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
-					storeCellCapacity[storeCell] = new(nextThing, capacity);
-
-					Log.Message($"New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}");
+					storeCellCapacity[storeCell] = new(nextStoreCell, map);
+					Log.Message($"{pawn} found new cell for {nextThing}:{remaining} at {nextStoreCell} (extra)");
 				}
 				else
 				{
 					var destinationAsThing = (Thing)nextHaulDestination;
 					storeCell = new(destinationAsThing);
 					job.targetQueueB.Add(destinationAsThing);
-
-					var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
-
-					storeCellCapacity[storeCell] = new(nextThing, capacity);
-
-					Log.Message($"New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}");
+					
+					storeCellCapacity[storeCell] = new(innerInteractableThingOwner);
+					Log.Message($"{pawn} found new haulDestination for {nextThing}:{remaining} at {storeCell.cell} (extra)");
 				}
+
+				var beforeCount = remaining;
+				remaining = storeCellCapacity[storeCell].TryStoreThing(nextThing, remaining);
+				Log.Message($"{pawn} allocated another {nextThing}:{beforeCount - remaining} in {storeCell}");
 			}
 			else
 			{
-				count -= capacityOver;
-				job.countQueue.Add(count);
-				Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
+				// We were able to haul `count - remaining`. 
+				job.countQueue.Add(count - remaining);
+				Log.Message($"{pawn} could not find a place to store {nextThing.def.LabelCap}, was able to store {nextThing}:{count - remaining}");
 				return false;
 			}
 		}
+		
 		job.countQueue.Add(count);
-		Log.Message($"{nextThing}:{count} allocated");
+		Log.Message($"{pawn} {nextThing}:{count} allocated");
 		return true;
 	}
 
