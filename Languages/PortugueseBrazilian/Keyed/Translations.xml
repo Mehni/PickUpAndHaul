@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LanguageData>
+  <PUAH.allowCorpses>Permitir colocar cadáveres no inventário</PUAH.allowCorpses>
+  <PUAH.allowCorpsesTooltip>Padrão: Desativado. Cadáveres serão carregados diretamente nas mãos.</PUAH.allowCorpsesTooltip>
+  <PUAH.allowAnimals>Permitir que animais de carga domesticados usem o inventário para transportar</PUAH.allowAnimals>
+  <PUAH.allowAnimalsTooltip>Padrão: Ativado. Funciona melhor com mods que adicionam mochilas a mais animais, como o VFME Caravan Packs.</PUAH.allowAnimalsTooltip>
+  <PUAH.allowMechanoids>Permitir que mecânicos hackeados usem o inventário para transportar</PUAH.allowMechanoids>
+  <PUAH.allowMechanoidsTooltip>Requer o mod What The Hack ou similar. Padrão: Ativado.</PUAH.allowMechanoidsTooltip>
+  <PUAH.minimumFreeInventorySpace>Espaço mínimo livre no inventário para considerar o transporte</PUAH.minimumFreeInventorySpace>
+  <PUAH.minimumFreeInventorySpaceTooltip>Colonos com menos espaço livre do que o definido aqui usarão o transporte padrão diretamente. 0% faz com que sempre tentem carregar para o inventário, independente de terem espaço para mais de um item ou não. 100% exige que os colonos estejam completamente nus. Padrão: 20%</PUAH.minimumFreeInventorySpaceTooltip>
+</LanguageData>
